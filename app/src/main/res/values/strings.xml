@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">GitHubRepoSearch</string>
+    <string name="search_hint">リポジトリを検索</string>
+    <string name="search_prompt">キーワードを入力して検索してください</string>
+    <string name="search_empty">該当するリポジトリが見つかりませんでした</string>
+    <string name="error_network">通信に失敗しました。接続を確認してください</string>
+    <string name="error_rate_limited">リクエストが多すぎます。しばらく待ってから再試行してください</string>
+    <string name="error_server">サーバーエラーが発生しました</string>
+    <string name="error_unknown">予期しないエラーが発生しました</string>
 </resources>

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.sakurasano.reposearch.data.RepoDetailRepository
 import com.sakurasano.reposearch.model.DataResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +26,8 @@ class RepoDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<RepoDetailUiState>(RepoDetailUiState.Loading)
     val uiState: StateFlow<RepoDetailUiState> = _uiState.asStateFlow()
 
+    private var fetchJob: Job? = null
+
     init {
         fetch()
     }
@@ -32,7 +35,8 @@ class RepoDetailViewModel @Inject constructor(
     fun retry() = fetch()
 
     private fun fetch() {
-        viewModelScope.launch {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
             _uiState.value = RepoDetailUiState.Loading
             _uiState.value = when (val result = repository.getRepository(owner, name)) {
                 is DataResult.Success -> RepoDetailUiState.Success(result.data)

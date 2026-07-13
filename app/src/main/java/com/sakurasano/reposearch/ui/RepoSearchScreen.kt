@@ -1,5 +1,6 @@
 package com.sakurasano.reposearch.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,49 +31,57 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sakurasano.reposearch.R
-import com.sakurasano.reposearch.model.GitHubRepo
+import com.sakurasano.reposearch.model.RepoSummary
 
 @Composable
 fun RepoSearchScreen(
+    onRepoClick: (RepoSummary) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RepoSearchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
+    Scaffold(modifier = modifier) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            label = { Text(stringResource(R.string.search_hint)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { viewModel.search(query) }),
-        )
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                label = { Text(stringResource(R.string.search_hint)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { viewModel.search(query) }),
+            )
 
-        when (val state = uiState) {
-            RepoSearchUiState.Idle -> CenterMessage(stringResource(R.string.search_prompt))
-            RepoSearchUiState.Loading -> CenterBox { CircularProgressIndicator() }
-            RepoSearchUiState.Empty -> CenterMessage(stringResource(R.string.search_empty))
-            is RepoSearchUiState.Error -> CenterMessage(stringResource(state.error.messageRes()))
-            is RepoSearchUiState.Success -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(
-                    items = state.repos,
-                    key = { it.id },
-                ) { repo -> RepoRow(repo) }
+            when (val state = uiState) {
+                RepoSearchUiState.Idle -> CenterMessage(stringResource(R.string.search_prompt))
+                RepoSearchUiState.Loading -> CenterBox { CircularProgressIndicator() }
+                RepoSearchUiState.Empty -> CenterMessage(stringResource(R.string.search_empty))
+                is RepoSearchUiState.Error -> CenterMessage(stringResource(state.error.messageRes()))
+                is RepoSearchUiState.Success -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(
+                        items = state.repos,
+                        key = { it.id },
+                    ) { repo -> RepoRow(repo, onClick = { onRepoClick(repo) }) }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun RepoRow(repo: GitHubRepo) {
+private fun RepoRow(repo: RepoSummary, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(text = repo.fullName, style = MaterialTheme.typography.titleMedium)

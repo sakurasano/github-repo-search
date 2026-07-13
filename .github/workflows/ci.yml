@@ -1,0 +1,35 @@
+name: CI
+
+# PRとmasterへのpushでテストとLintを実行する
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# 同一ブランチで新しいpushがあれば古い実行はキャンセルする
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Android Lint
+        run: ./gradlew lintDebug

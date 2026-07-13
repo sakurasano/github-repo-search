@@ -1,5 +1,7 @@
 package com.sakurasano.reposearch.di
 
+import com.sakurasano.reposearch.data.RepoDetailRepository
+import com.sakurasano.reposearch.data.RepoDetailRepositoryImpl
 import com.sakurasano.reposearch.data.RepoSearchRepository
 import com.sakurasano.reposearch.data.RepoSearchRepositoryImpl
 import dagger.Binds
@@ -13,4 +15,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindRepoSearchRepository(impl: RepoSearchRepositoryImpl): RepoSearchRepository
+
+    @Binds
+    abstract fun bindRepoDetailRepository(impl: RepoDetailRepositoryImpl): RepoDetailRepository
 }

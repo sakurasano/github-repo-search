@@ -7,4 +7,10 @@
     <string name="error_rate_limited">リクエストが多すぎます。しばらく待ってから再試行してください</string>
     <string name="error_server">サーバーエラーが発生しました</string>
     <string name="error_unknown">予期しないエラーが発生しました</string>
+    <string name="detail_title">リポジトリ</string>
+    <string name="detail_back">戻る</string>
+    <string name="detail_stars">★ %1$d</string>
+    <string name="detail_forks">フォーク %1$d</string>
+    <string name="detail_issues">Issue %1$d</string>
+    <string name="detail_retry">再試行</string>
 </resources>

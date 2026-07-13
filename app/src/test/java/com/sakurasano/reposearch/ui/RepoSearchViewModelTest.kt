@@ -5,7 +5,7 @@ import com.sakurasano.reposearch.data.FakeRepoSearchRepository
 import com.sakurasano.reposearch.data.RepoSearchRepository
 import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
-import com.sakurasano.reposearch.model.GitHubRepo
+import com.sakurasano.reposearch.model.RepoSummary
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -78,20 +78,14 @@ class RepoSearchViewModelTest {
         assertEquals(RepoSearchUiState.Success(newRepos), viewModel.uiState.value)
     }
 
-    private fun sampleRepo(name: String = "nowinandroid") = GitHubRepo(
+    private fun sampleRepo(name: String = "nowinandroid") = RepoSummary(
         id = name.hashCode().toLong(),
         name = name,
         fullName = "android/$name",
         description = "",
         ownerName = "android",
-        ownerAvatarUrl = "",
         starCount = 100,
-        forkCount = 10,
         language = "Kotlin",
-        topics = emptyList(),
-        openIssueCount = 0,
-        htmlUrl = "https://github.com/android/$name",
-        license = "",
     )
 }
 
@@ -100,12 +94,12 @@ class RepoSearchViewModelTest {
  * [complete] を呼ぶまで [searchRepositories] は中断したままになる
  */
 private class GatedFakeRepository : RepoSearchRepository {
-    private val gates = mutableMapOf<String, CompletableDeferred<DataResult<List<GitHubRepo>>>>()
+    private val gates = mutableMapOf<String, CompletableDeferred<DataResult<List<RepoSummary>>>>()
 
-    override suspend fun searchRepositories(query: String): DataResult<List<GitHubRepo>> =
+    override suspend fun searchRepositories(query: String): DataResult<List<RepoSummary>> =
         gates.getOrPut(query) { CompletableDeferred() }.await()
 
-    fun complete(query: String, result: DataResult<List<GitHubRepo>>) {
+    fun complete(query: String, result: DataResult<List<RepoSummary>>) {
         gates.getOrPut(query) { CompletableDeferred() }.complete(result)
     }
 }

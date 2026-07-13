@@ -2,27 +2,27 @@ package com.sakurasano.reposearch.data
 
 import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
-import com.sakurasano.reposearch.model.RepoSummary
+import com.sakurasano.reposearch.model.RepoDetail
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
-interface RepoSearchRepository {
+interface RepoDetailRepository {
     /**
-     * @param query 検索キーワード（GitHub検索構文が使える。例: "compose language:kotlin"）
+     * @param owner リポジトリのオーナー名
+     * @param name リポジトリ名
      */
-    suspend fun searchRepositories(query: String): DataResult<List<RepoSummary>>
+    suspend fun getRepository(owner: String, name: String): DataResult<RepoDetail>
 }
 
-class RepoSearchRepositoryImpl @Inject constructor(
+class RepoDetailRepositoryImpl @Inject constructor(
     private val api: GitHubApi,
-) : RepoSearchRepository {
+) : RepoDetailRepository {
 
-    override suspend fun searchRepositories(query: String): DataResult<List<RepoSummary>> =
+    override suspend fun getRepository(owner: String, name: String): DataResult<RepoDetail> =
         try {
-            val repos = api.searchRepositories(query).items.map { it.toDomain() }
-            DataResult.Success(repos)
+            DataResult.Success(api.getRepository(owner, name).toDomain())
         } catch (e: CancellationException) {
             throw e // キャンセルは飲み込まず伝播させる
         } catch (e: IOException) {

@@ -59,7 +59,7 @@ fun LanguageLabel(language: String, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(10.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondary),
+                .background(languageColor(language) ?: MaterialTheme.colorScheme.onSurfaceVariant),
         )
         Text(
             text = language,

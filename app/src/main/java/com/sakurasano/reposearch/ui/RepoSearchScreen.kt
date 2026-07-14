@@ -1,6 +1,7 @@
 package com.sakurasano.reposearch.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,9 +9,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,11 +28,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.sakurasano.reposearch.R
 import com.sakurasano.reposearch.model.RepoSummary
 
@@ -82,25 +87,35 @@ fun RepoSearchScreen(
 
 @Composable
 private fun RepoRow(repo: RepoSummary, onClick: () -> Unit) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(text = repo.fullName, style = MaterialTheme.typography.titleMedium)
-        if (repo.description.isNotBlank()) {
-            Text(
-                text = repo.description,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-            )
-        }
-        Row {
-            Text(text = "★ ${repo.starCount}", style = MaterialTheme.typography.labelLarge)
-            if (repo.language.isNotBlank()) {
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(text = repo.language, style = MaterialTheme.typography.labelLarge)
+        AsyncImage(
+            model = repo.ownerAvatarUrl,
+            contentDescription = null,
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape),
+        )
+        Column {
+            Text(text = repo.fullName, style = MaterialTheme.typography.titleMedium)
+            if (repo.description.isNotBlank()) {
+                Text(
+                    text = repo.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                )
+            }
+            Row {
+                Text(text = "★ ${repo.starCount}", style = MaterialTheme.typography.labelLarge)
+                if (repo.language.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(text = repo.language, style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
     }

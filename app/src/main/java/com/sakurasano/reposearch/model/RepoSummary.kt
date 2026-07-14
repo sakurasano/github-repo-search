@@ -9,6 +9,7 @@ data class RepoSummary(
     val fullName: String,
     val description: String,
     val ownerName: String,
+    val ownerAvatarUrl: String,
     val starCount: Int,
     val language: String,
 )

@@ -1,6 +1,5 @@
 name: CI
 
-# PRとmasterへのpushでテストとLintを実行する
 on:
   pull_request:
   push:
@@ -27,6 +26,9 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
+
+      - name: Format check
+        run: ./gradlew spotlessCheck
 
       - name: Unit tests
         run: ./gradlew testDebugUnitTest

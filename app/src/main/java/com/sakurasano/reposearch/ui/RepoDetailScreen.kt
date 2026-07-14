@@ -12,10 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.ForkRight
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
@@ -30,7 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,7 +69,7 @@ fun RepoDetailScreen(
             RepoDetailUiState.Loading -> LoadingIndicator(Modifier.padding(innerPadding))
 
             is RepoDetailUiState.Error -> StatusMessage(
-                icon = Icons.Filled.ErrorOutline,
+                icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
                 message = stringResource(state.error.messageRes()),
                 modifier = Modifier.padding(innerPadding),
                 onRetry = viewModel::retry,
@@ -126,12 +124,12 @@ private fun RepoDetailContent(repo: RepoDetail, modifier: Modifier = Modifier) {
                     contentDescription = stringResource(R.string.cd_stars),
                 )
                 RepoStat(
-                    icon = Icons.Filled.ForkRight,
+                    icon = ImageVector.vectorResource(R.drawable.ic_fork_right),
                     value = repo.forkCount.toString(),
                     contentDescription = stringResource(R.string.cd_forks),
                 )
                 RepoStat(
-                    icon = Icons.Filled.BugReport,
+                    icon = ImageVector.vectorResource(R.drawable.ic_bug_report),
                     value = repo.openIssueCount.toString(),
                     contentDescription = stringResource(R.string.cd_issues),
                 )
@@ -147,7 +145,7 @@ private fun RepoDetailContent(repo: RepoDetail, modifier: Modifier = Modifier) {
             }
             if (repo.license.isNotBlank()) {
                 RepoStat(
-                    icon = Icons.Filled.Description,
+                    icon = ImageVector.vectorResource(R.drawable.ic_description),
                     value = repo.license,
                     contentDescription = stringResource(R.string.cd_license),
                 )

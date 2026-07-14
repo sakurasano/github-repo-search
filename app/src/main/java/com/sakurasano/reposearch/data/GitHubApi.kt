@@ -9,7 +9,9 @@ interface GitHubApi {
     @GET("search/repositories")
     suspend fun searchRepositories(
         @Query("q") query: String,
-        @Query("sort") sort: String? = null, // 指定しない場合、Defaultはbest match。参考：https://docs.github.com/ja/rest/search/search?apiVersion=2026-03-10#ranking-search-results
+        // 指定しない場合、Defaultはbest match。
+        // 参考：https://docs.github.com/ja/rest/search/search?apiVersion=2026-03-10#ranking-search-results
+        @Query("sort") sort: String? = null,
         @Query("order") order: String? = DEFAULT_ORDER,
         @Query("per_page") perPage: Int? = DEFAULT_PER_PAGE,
     ): RepoSearchResponseDto

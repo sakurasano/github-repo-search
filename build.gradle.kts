@@ -5,4 +5,23 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.spotless)
+}
+
+// コードのフォーマッタ。スタイルは.editorconfigで一元管理する
+spotless {
+    kotlin {
+        target("**/*.kt")
+        targetExclude("**/build/**")
+        ktlint().editorConfigOverride(
+            mapOf(
+                "ktlint_standard_function-signature" to "disabled",
+                "ktlint_standard_class-signature" to "disabled",
+            ),
+        )
+    }
+    kotlinGradle {
+        target("**/*.gradle.kts")
+        ktlint()
+    }
 }

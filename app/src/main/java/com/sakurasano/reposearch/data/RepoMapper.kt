@@ -9,6 +9,7 @@ fun RepoSummaryDto.toDomain(): RepoSummary = RepoSummary(
     fullName = fullName,
     description = description.orEmpty(),
     ownerName = owner?.login.orEmpty(),
+    ownerAvatarUrl = owner?.avatarUrl.orEmpty(),
     starCount = starCount,
     language = language.orEmpty(),
 )
@@ -18,6 +19,7 @@ fun RepoDetailDto.toDomain(): RepoDetail = RepoDetail(
     fullName = fullName,
     description = description.orEmpty(),
     ownerName = owner?.login.orEmpty(),
+    ownerAvatarUrl = owner?.avatarUrl.orEmpty(),
     starCount = starCount,
     forkCount = forkCount,
     openIssueCount = openIssueCount,

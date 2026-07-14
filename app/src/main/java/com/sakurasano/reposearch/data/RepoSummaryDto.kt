@@ -22,6 +22,7 @@ data class RepoSummaryDto(
 @Serializable
 data class OwnerDto(
     val login: String,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
 )
 
 @Serializable

@@ -8,6 +8,7 @@ data class RepoDetail(
     val fullName: String,
     val description: String,
     val ownerName: String,
+    val ownerAvatarUrl: String,
     val starCount: Int,
     val forkCount: Int,
     val openIssueCount: Int,

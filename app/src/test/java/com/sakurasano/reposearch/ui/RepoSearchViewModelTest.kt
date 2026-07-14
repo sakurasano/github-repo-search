@@ -84,6 +84,7 @@ class RepoSearchViewModelTest {
         fullName = "android/$name",
         description = "",
         ownerName = "android",
+        ownerAvatarUrl = "https://example.com/avatar.png",
         starCount = 100,
         language = "Kotlin",
     )

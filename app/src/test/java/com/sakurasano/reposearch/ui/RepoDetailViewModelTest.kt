@@ -83,6 +83,7 @@ class RepoDetailViewModelTest {
         fullName = "android/$name",
         description = "説明",
         ownerName = "android",
+        ownerAvatarUrl = "https://example.com/avatar.png",
         starCount = 100,
         forkCount = 10,
         openIssueCount = 3,

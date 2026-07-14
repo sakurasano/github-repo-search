@@ -10,18 +10,19 @@ plugins {
 
 // コードのフォーマッタ。スタイルは.editorconfigで一元管理する
 spotless {
+    // 意図的なレイアウトを展開・再構成するルールは無効化
+    val ktlintRules = mapOf(
+        "ktlint_standard_function-signature" to "disabled",
+        "ktlint_standard_class-signature" to "disabled",
+        "ktlint_standard_multiline-expression-wrapping" to "disabled",
+    )
     kotlin {
         target("**/*.kt")
         targetExclude("**/build/**")
-        ktlint().editorConfigOverride(
-            mapOf(
-                "ktlint_standard_function-signature" to "disabled",
-                "ktlint_standard_class-signature" to "disabled",
-            ),
-        )
+        ktlint().editorConfigOverride(ktlintRules)
     }
     kotlinGradle {
         target("**/*.gradle.kts")
-        ktlint()
+        ktlint().editorConfigOverride(ktlintRules)
     }
 }

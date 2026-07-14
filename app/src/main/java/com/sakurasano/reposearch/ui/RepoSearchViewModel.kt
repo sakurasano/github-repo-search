@@ -29,8 +29,11 @@ class RepoSearchViewModel @Inject constructor(
             _uiState.value = RepoSearchUiState.Loading
             _uiState.value = when (val result = repository.searchRepositories(query)) {
                 is DataResult.Success ->
-                    if (result.data.isEmpty()) RepoSearchUiState.Empty
-                    else RepoSearchUiState.Success(result.data)
+                    if (result.data.isEmpty()) {
+                        RepoSearchUiState.Empty
+                    } else {
+                        RepoSearchUiState.Success(result.data)
+                    }
 
                 is DataResult.Failure -> RepoSearchUiState.Error(result.error)
             }

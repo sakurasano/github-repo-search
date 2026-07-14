@@ -62,9 +62,13 @@ fun RepoSearchScreen(
 
             when (val state = uiState) {
                 RepoSearchUiState.Idle -> CenterMessage(stringResource(R.string.search_prompt))
+
                 RepoSearchUiState.Loading -> CenterBox { CircularProgressIndicator() }
+
                 RepoSearchUiState.Empty -> CenterMessage(stringResource(R.string.search_empty))
+
                 is RepoSearchUiState.Error -> CenterMessage(stringResource(state.error.messageRes()))
+
                 is RepoSearchUiState.Success -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(
                         items = state.repos,

@@ -13,4 +13,10 @@
     <string name="detail_forks">フォーク %1$d</string>
     <string name="detail_issues">Issue %1$d</string>
     <string name="detail_retry">再試行</string>
+    <string name="search_clear">検索をクリア</string>
+    <string name="search_retry">再試行</string>
+    <string name="cd_stars">スター数</string>
+    <string name="cd_forks">フォーク数</string>
+    <string name="cd_issues">オープンIssue数</string>
+    <string name="cd_license">ライセンス</string>
 </resources>

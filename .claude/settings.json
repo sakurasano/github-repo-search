@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew spotlessCheck*)",
+      "Bash(./gradlew testDebugUnitTest*)",
+      "Bash(./gradlew :app:testDebugUnitTest*)"
+    ]
+  }
+}

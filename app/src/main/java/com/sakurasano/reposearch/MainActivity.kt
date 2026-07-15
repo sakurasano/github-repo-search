@@ -57,7 +57,10 @@ class MainActivity : ComponentActivity() {
             }
 
             GitHubRepoSearchTheme(darkTheme = darkTheme) {
-                AppNavHost(modifier = Modifier.fillMaxSize())
+                AppNavHost(
+                    themeViewModel = themeViewModel,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
     }

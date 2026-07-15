@@ -51,9 +51,9 @@ import com.sakurasano.reposearch.model.ThemeMode
 @Composable
 fun RepoSearchScreen(
     onRepoClick: (RepoSummary) -> Unit,
+    themeViewModel: ThemeViewModel,
     modifier: Modifier = Modifier,
     repoSearchViewModel: RepoSearchViewModel = hiltViewModel(),
-    themeViewModel: ThemeViewModel = hiltViewModel(),
 ) {
     val uiState by repoSearchViewModel.uiState.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }

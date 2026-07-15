@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.sakurasano.reposearch.ui.RepoDetailScreen
 import com.sakurasano.reposearch.ui.RepoSearchScreen
+import com.sakurasano.reposearch.ui.ThemeViewModel
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -18,6 +19,7 @@ data class RepoDetailRoute(val owner: String, val name: String)
 
 @Composable
 fun AppNavHost(
+    themeViewModel: ThemeViewModel,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
@@ -31,6 +33,7 @@ fun AppNavHost(
                 onRepoClick = { repo ->
                     navController.navigate(RepoDetailRoute(owner = repo.ownerName, name = repo.name))
                 },
+                themeViewModel = themeViewModel,
             )
         }
         composable<RepoDetailRoute> {

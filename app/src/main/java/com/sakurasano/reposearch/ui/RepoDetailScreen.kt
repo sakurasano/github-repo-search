@@ -1,5 +1,8 @@
 package com.sakurasano.reposearch.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -20,20 +23,27 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sakurasano.reposearch.R
 import com.sakurasano.reposearch.model.RepoDetail
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +54,11 @@ fun RepoDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val openError = stringResource(R.string.detail_open_in_browser_error)
+
     val title = when (val state = uiState) {
         is RepoDetailUiState.Success -> state.repo.name
         else -> stringResource(R.string.detail_title)
@@ -51,6 +66,7 @@ fun RepoDetailScreen(
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = title) },
@@ -60,6 +76,23 @@ fun RepoDetailScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.detail_back),
                         )
+                    }
+                },
+                actions = {
+                    val state = uiState
+                    if (state is RepoDetailUiState.Success && state.repo.htmlUrl.isNotBlank()) {
+                        IconButton(
+                            onClick = {
+                                if (!openInCustomTab(context, state.repo.htmlUrl)) {
+                                    scope.launch { snackbarHostState.showSnackbar(openError) }
+                                }
+                            },
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_open_in_new),
+                                contentDescription = stringResource(R.string.cd_open_in_browser),
+                            )
+                        }
                     }
                 },
             )
@@ -160,4 +193,11 @@ private fun RepoDetailContent(repo: RepoDetail, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+private fun openInCustomTab(context: Context, url: String): Boolean = try {
+    CustomTabsIntent.Builder().build().launchUrl(context, url.toUri())
+    true
+} catch (e: ActivityNotFoundException) {
+    false
 }

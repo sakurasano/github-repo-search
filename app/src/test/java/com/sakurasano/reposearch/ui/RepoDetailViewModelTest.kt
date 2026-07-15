@@ -81,6 +81,7 @@ class RepoDetailViewModelTest {
     private fun sampleDetail(name: String = "nowinandroid") = RepoDetail(
         name = name,
         fullName = "android/$name",
+        htmlUrl = "https://github.com/android/$name",
         description = "説明",
         ownerName = "android",
         ownerAvatarUrl = "https://example.com/avatar.png",

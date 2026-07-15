@@ -16,4 +16,8 @@
     <string name="cd_forks">フォーク数</string>
     <string name="cd_issues">オープンIssue数</string>
     <string name="cd_license">ライセンス</string>
+    <string name="cd_theme">テーマを切り替え</string>
+    <string name="theme_system">システムに従う</string>
+    <string name="theme_light">ライト</string>
+    <string name="theme_dark">ダーク</string>
 </resources>

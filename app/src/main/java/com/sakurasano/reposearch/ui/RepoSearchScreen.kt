@@ -1,5 +1,6 @@
 package com.sakurasano.reposearch.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,12 +17,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -41,21 +45,28 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sakurasano.reposearch.R
 import com.sakurasano.reposearch.model.RepoSummary
+import com.sakurasano.reposearch.model.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RepoSearchScreen(
     onRepoClick: (RepoSummary) -> Unit,
+    themeViewModel: ThemeViewModel,
     modifier: Modifier = Modifier,
-    viewModel: RepoSearchViewModel = hiltViewModel(),
+    repoSearchViewModel: RepoSearchViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by repoSearchViewModel.uiState.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.app_name)) },
+                actions = { ThemeMenu(themeViewModel) },
+            )
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -88,7 +99,7 @@ fun RepoSearchScreen(
                 keyboardActions = KeyboardActions(
                     onSearch = {
                         focusManager.clearFocus()
-                        viewModel.search(query)
+                        repoSearchViewModel.search(query)
                     },
                 ),
             )
@@ -109,7 +120,7 @@ fun RepoSearchScreen(
                 is RepoSearchUiState.Error -> StatusMessage(
                     icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
                     message = stringResource(state.error.messageRes()),
-                    onRetry = { viewModel.search(query) },
+                    onRetry = { repoSearchViewModel.search(query) },
                     retryLabel = stringResource(R.string.search_retry),
                 )
 
@@ -126,6 +137,39 @@ fun RepoSearchScreen(
             }
         }
     }
+}
+
+@Composable
+private fun ThemeMenu(viewModel: ThemeViewModel) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentMode = (uiState as? ThemeUiState.Success)?.themeMode
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    IconButton(onClick = { expanded = true }) {
+        Icon(
+            imageVector = ImageVector.vectorResource(R.drawable.ic_dark_mode),
+            contentDescription = stringResource(R.string.cd_theme),
+        )
+    }
+    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ThemeMode.entries.forEach { mode ->
+            DropdownMenuItem(
+                text = { Text(stringResource(mode.labelRes())) },
+                onClick = {
+                    viewModel.setThemeMode(mode)
+                    expanded = false
+                },
+                leadingIcon = { RadioButton(selected = mode == currentMode, onClick = null) },
+            )
+        }
+    }
+}
+
+@StringRes
+private fun ThemeMode.labelRes(): Int = when (this) {
+    ThemeMode.SYSTEM -> R.string.theme_system
+    ThemeMode.LIGHT -> R.string.theme_light
+    ThemeMode.DARK -> R.string.theme_dark
 }
 
 @Composable

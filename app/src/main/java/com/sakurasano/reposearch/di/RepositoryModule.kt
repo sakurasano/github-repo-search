@@ -4,6 +4,8 @@ import com.sakurasano.reposearch.data.RepoDetailRepository
 import com.sakurasano.reposearch.data.RepoDetailRepositoryImpl
 import com.sakurasano.reposearch.data.RepoSearchRepository
 import com.sakurasano.reposearch.data.RepoSearchRepositoryImpl
+import com.sakurasano.reposearch.data.SearchHistoryRepository
+import com.sakurasano.reposearch.data.SearchHistoryRepositoryImpl
 import com.sakurasano.reposearch.data.ThemeRepository
 import com.sakurasano.reposearch.data.ThemeRepositoryImpl
 import dagger.Binds
@@ -23,4 +25,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindThemeRepository(impl: ThemeRepositoryImpl): ThemeRepository
+
+    @Binds
+    abstract fun bindSearchHistoryRepository(impl: SearchHistoryRepositoryImpl): SearchHistoryRepository
 }

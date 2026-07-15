@@ -162,7 +162,7 @@ private fun RepoDetailContent(repo: RepoDetail, modifier: Modifier = Modifier) {
                     contentDescription = stringResource(R.string.cd_forks),
                 )
                 RepoStat(
-                    icon = ImageVector.vectorResource(R.drawable.ic_bug_report),
+                    icon = ImageVector.vectorResource(R.drawable.ic_adjust),
                     value = repo.openIssueCount.toString(),
                     contentDescription = stringResource(R.string.cd_issues),
                 )

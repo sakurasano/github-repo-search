@@ -152,6 +152,21 @@ class RepoSearchViewModelTest {
         assertTrue(history.history.value.isEmpty())
     }
 
+    @Test
+    fun `連続検索で前の検索が中断されても両方のクエリが記録される`() = runTest {
+        val history = FakeSearchHistoryRepository()
+        val repo = GatedFakeRepository()
+        val viewModel = RepoSearchViewModel(repo, history)
+
+        viewModel.search("kotlin") // 応答待ちで中断（searchJob進行中）
+        viewModel.search("compose") // searchJobをキャンセルして再開
+        advanceUntilIdle()
+
+        // 記録はsearchJobと別に起動するため、キャンセルされた前回検索のクエリも残る
+        assertTrue(history.history.value.contains("kotlin"))
+        assertTrue(history.history.value.contains("compose"))
+    }
+
     private fun sampleRepo(name: String = "nowinandroid") = RepoSummary(
         id = name.hashCode().toLong(),
         name = name,

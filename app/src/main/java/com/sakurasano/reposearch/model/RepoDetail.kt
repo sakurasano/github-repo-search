@@ -6,6 +6,7 @@ package com.sakurasano.reposearch.model
 data class RepoDetail(
     val name: String,
     val fullName: String,
+    val htmlUrl: String,
     val description: String,
     val ownerName: String,
     val ownerAvatarUrl: String,

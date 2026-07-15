@@ -2,14 +2,18 @@ package com.sakurasano.reposearch.ui
 
 import com.sakurasano.reposearch.MainDispatcherRule
 import com.sakurasano.reposearch.data.FakeRepoSearchRepository
+import com.sakurasano.reposearch.data.FakeSearchHistoryRepository
 import com.sakurasano.reposearch.data.RepoSearchRepository
 import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoSummary
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -22,7 +26,10 @@ class RepoSearchViewModelTest {
     @Test
     fun `検索が成功するとSuccessになる`() = runTest {
         val repos = listOf(sampleRepo())
-        val viewModel = RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(repos)))
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(repos)),
+            FakeSearchHistoryRepository(),
+        )
 
         viewModel.search("compose")
 
@@ -31,8 +38,10 @@ class RepoSearchViewModelTest {
 
     @Test
     fun `検索結果が0件だとEmptyになる`() = runTest {
-        val viewModel =
-            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(emptyList())))
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeSearchHistoryRepository(),
+        )
 
         viewModel.search("no-such-repository")
 
@@ -41,8 +50,10 @@ class RepoSearchViewModelTest {
 
     @Test
     fun `検索が失敗するとErrorになる`() = runTest {
-        val viewModel =
-            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Failure(AppError.Network)))
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Failure(AppError.Network)),
+            FakeSearchHistoryRepository(),
+        )
 
         viewModel.search("compose")
 
@@ -51,8 +62,10 @@ class RepoSearchViewModelTest {
 
     @Test
     fun `空白のクエリでは検索せずIdleのままになる`() = runTest {
-        val viewModel =
-            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(emptyList())))
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeSearchHistoryRepository(),
+        )
 
         viewModel.search("   ")
 
@@ -62,7 +75,7 @@ class RepoSearchViewModelTest {
     @Test
     fun `連続検索では後の検索が優先され前の検索結果で上書きされない`() = runTest {
         val repo = GatedFakeRepository()
-        val viewModel = RepoSearchViewModel(repo)
+        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository())
 
         val oldRepos = listOf(sampleRepo("old"))
         val newRepos = listOf(sampleRepo("new"))
@@ -76,6 +89,67 @@ class RepoSearchViewModelTest {
 
         // oldはキャンセル済みなので状態を上書きせず、newの結果が残る
         assertEquals(RepoSearchUiState.Success(newRepos), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `検索を実行するとそのクエリが履歴に記録される`() = runTest {
+        val history = FakeSearchHistoryRepository()
+        val viewModel =
+            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(listOf(sampleRepo()))), history)
+
+        viewModel.search("compose")
+        advanceUntilIdle()
+
+        assertTrue(history.history.value.contains("compose"))
+    }
+
+    @Test
+    fun `結果0件でも実行したクエリは履歴に記録される`() = runTest {
+        val history = FakeSearchHistoryRepository()
+        val viewModel =
+            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(emptyList())), history)
+
+        viewModel.search("no-such-repository")
+        advanceUntilIdle()
+
+        assertTrue(history.history.value.contains("no-such-repository"))
+    }
+
+    @Test
+    fun `検索が失敗しても実行したクエリは履歴に記録される`() = runTest {
+        val history = FakeSearchHistoryRepository()
+        val viewModel =
+            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Failure(AppError.Network)), history)
+
+        viewModel.search("compose")
+        advanceUntilIdle()
+
+        assertTrue(history.history.value.contains("compose"))
+    }
+
+    @Test
+    fun `履歴を削除すると当該クエリが履歴から消える`() = runTest {
+        val history = FakeSearchHistoryRepository(listOf("compose", "hilt"))
+        val viewModel =
+            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(emptyList())), history)
+
+        viewModel.removeHistory("compose")
+        advanceUntilIdle()
+
+        assertFalse(history.history.value.contains("compose"))
+        assertTrue(history.history.value.contains("hilt"))
+    }
+
+    @Test
+    fun `履歴を全消去すると履歴が空になる`() = runTest {
+        val history = FakeSearchHistoryRepository(listOf("compose", "hilt"))
+        val viewModel =
+            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(emptyList())), history)
+
+        viewModel.clearHistory()
+        advanceUntilIdle()
+
+        assertTrue(history.history.value.isEmpty())
     }
 
     private fun sampleRepo(name: String = "nowinandroid") = RepoSummary(

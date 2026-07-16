@@ -31,7 +31,7 @@ class RepoSearchViewModel @Inject constructor(
 
     fun search(query: String) {
         if (query.isBlank()) return
-        // 記録はsearchJobと別に起動する。連続検索でsearchJobをcancelしても記録が巻き添えにならないようにするため
+        // 履歴の記録はsearchJobと別に起動する。連続検索でsearchJobをcancelしても記録が巻き添えにならないようにするため
         viewModelScope.launch { searchHistoryRepository.record(query) }
         searchJob?.cancel() // 進行中の前回検索を打ち切り、遅い前回結果が新しい結果を上書きするのを防ぐ
         searchJob = viewModelScope.launch {

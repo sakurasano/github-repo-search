@@ -78,7 +78,7 @@ fun RepoSearchScreen(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val suggestions = remember(query, history) { filterHistory(history, query) }
 
-    // IMEを閉じてもフォーカスが残りサジェストが結果を覆い続ける手詰まりを防ぐ逃げ道
+    // IMEを閉じてもフォーカスが残りサジェストが結果を覆い続けるのを防ぐ逃げ道
     BackHandler(enabled = isFocused) { focusManager.clearFocus() }
 
     Scaffold(

@@ -40,15 +40,17 @@ class SearchHistoryRepositoryImpl @Inject constructor(
         .distinctUntilChanged()
 
     override suspend fun record(query: String) {
-        // editブロック内で読み直して書き戻し、並行実行でも取りこぼさない（トランザクションはプロセス内保証）
+        // ブロック内で読み直してから書き戻すことで、record同士が同時に走っても互いの記録を上書きしない（editはプロセス内でトランザクション）
         dataStore.edit { preferences ->
-            preferences[HISTORY_KEY] = json.encodeToString(decodeHistory(preferences).withRecorded(query))
+            val updated = decodeHistory(preferences).withRecorded(query)
+            preferences[HISTORY_KEY] = json.encodeToString(updated)
         }
     }
 
     override suspend fun remove(query: String) {
         dataStore.edit { preferences ->
-            preferences[HISTORY_KEY] = json.encodeToString(decodeHistory(preferences) - query)
+            val updated = decodeHistory(preferences) - query
+            preferences[HISTORY_KEY] = json.encodeToString(updated)
         }
     }
 

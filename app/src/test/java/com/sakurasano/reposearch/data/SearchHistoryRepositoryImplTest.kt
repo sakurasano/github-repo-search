@@ -31,7 +31,7 @@ class SearchHistoryRepositoryImplTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    // DataStore内部のアクターとテスト本体でスケジューラを共有し advanceUntilIdle で駆動する
+    // DataStoreの書き込みをテストと同じ仮想時間で動かし、advanceUntilIdleで完了させられるようにする
     private val dataStoreScope = CoroutineScope(testDispatcher + Job())
 
     private lateinit var dataStore: DataStore<Preferences>

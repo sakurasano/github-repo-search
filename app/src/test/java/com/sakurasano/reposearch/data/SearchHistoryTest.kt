@@ -34,7 +34,7 @@ class SearchHistoryTest {
     }
 
     @Test
-    fun `trim後空のクエリは記録されない`() {
+    fun `空白だけのクエリは記録されない`() {
         val base = listOf("kotlin", "android")
 
         val result = base.withRecorded("   ")

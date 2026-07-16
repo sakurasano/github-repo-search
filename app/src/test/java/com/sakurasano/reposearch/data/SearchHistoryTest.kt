@@ -28,13 +28,9 @@ class SearchHistoryTest {
 
     @Test
     fun `上限を超えたら最古が押し出され件数が上限に収まる`() {
-        val base = (1..MAX_HISTORY).map { "query$it" }
+        val result = listOf("a", "b", "c").withRecorded("new", limit = 3)
 
-        val result = base.withRecorded("new")
-
-        assertEquals(MAX_HISTORY, result.size)
-        assertEquals("new", result.first())
-        assertEquals(false, result.contains("query$MAX_HISTORY"))
+        assertEquals(listOf("new", "a", "b"), result)
     }
 
     @Test

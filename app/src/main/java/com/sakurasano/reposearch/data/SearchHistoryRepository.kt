@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
 import java.io.IOException
 import javax.inject.Inject
 
-const val MAX_HISTORY = 10
+private const val MAX_HISTORY = 10
 
 interface SearchHistoryRepository {
     val history: Flow<List<String>>
@@ -36,19 +36,19 @@ class SearchHistoryRepositoryImpl @Inject constructor(
             // 履歴が読めなくても検索機能は使えるべきなので、空履歴へフォールバックする
             if (cause is IOException) emit(emptyPreferences()) else throw cause
         }
-        .map { preferences -> preferences.decodeHistory() }
+        .map { preferences -> decodeHistory(preferences) }
         .distinctUntilChanged()
 
     override suspend fun record(query: String) {
         // editブロック内で読み直して書き戻し、並行実行でも取りこぼさない（トランザクションはプロセス内保証）
         dataStore.edit { preferences ->
-            preferences[HISTORY_KEY] = json.encodeToString(preferences.decodeHistory().withRecorded(query))
+            preferences[HISTORY_KEY] = json.encodeToString(decodeHistory(preferences).withRecorded(query))
         }
     }
 
     override suspend fun remove(query: String) {
         dataStore.edit { preferences ->
-            preferences[HISTORY_KEY] = json.encodeToString(preferences.decodeHistory() - query)
+            preferences[HISTORY_KEY] = json.encodeToString(decodeHistory(preferences) - query)
         }
     }
 
@@ -56,8 +56,8 @@ class SearchHistoryRepositoryImpl @Inject constructor(
         dataStore.edit { preferences -> preferences.remove(HISTORY_KEY) }
     }
 
-    private fun Preferences.decodeHistory(): List<String> =
-        this[HISTORY_KEY]?.let { stored ->
+    private fun decodeHistory(preferences: Preferences): List<String> =
+        preferences[HISTORY_KEY]?.let { stored ->
             runCatching { json.decodeFromString<List<String>>(stored) }.getOrDefault(emptyList())
         } ?: emptyList()
 

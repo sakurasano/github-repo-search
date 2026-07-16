@@ -8,9 +8,7 @@ class FakeSearchHistoryRepository(initial: List<String> = emptyList()) : SearchH
     override val history: StateFlow<List<String>> = state
 
     override suspend fun record(query: String) {
-        val trimmed = query.trim()
-        if (trimmed.isEmpty()) return
-        state.value = listOf(trimmed) + state.value.filterNot { it.equals(trimmed, ignoreCase = true) }
+        state.value = state.value.withRecorded(query)
     }
 
     override suspend fun remove(query: String) {

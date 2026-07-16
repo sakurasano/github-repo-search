@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RepoSearchViewModel @Inject constructor(
-    private val repository: RepoSearchRepository,
+    private val repoSearchRepository: RepoSearchRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
 ) : ViewModel() {
 
@@ -36,7 +36,7 @@ class RepoSearchViewModel @Inject constructor(
         searchJob?.cancel() // 進行中の前回検索を打ち切り、遅い前回結果が新しい結果を上書きするのを防ぐ
         searchJob = viewModelScope.launch {
             _uiState.value = RepoSearchUiState.Loading
-            _uiState.value = when (val result = repository.searchRepositories(query)) {
+            _uiState.value = when (val result = repoSearchRepository.searchRepositories(query)) {
                 is DataResult.Success ->
                     if (result.data.isEmpty()) {
                         RepoSearchUiState.Empty

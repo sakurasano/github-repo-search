@@ -24,4 +24,14 @@ object DataStoreModule {
         PreferenceDataStoreFactory.create(
             produceFile = { context.preferencesDataStoreFile("settings") },
         )
+
+    @Provides
+    @Singleton
+    @SearchHistoryDataStore
+    fun provideSearchHistoryDataStore(
+        @ApplicationContext context: Context,
+    ): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(
+            produceFile = { context.preferencesDataStoreFile("search_history") },
+        )
 }

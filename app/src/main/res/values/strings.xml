@@ -13,6 +13,8 @@
     <string name="detail_open_in_browser_error">ブラウザを開けませんでした</string>
     <string name="search_clear">検索をクリア</string>
     <string name="search_retry">再試行</string>
+    <string name="search_history_clear_all">検索履歴をすべて削除</string>
+    <string name="cd_search_history_remove">この履歴を削除</string>
     <string name="cd_stars">スター数</string>
     <string name="cd_forks">フォーク数</string>
     <string name="cd_issues">オープンIssue数</string>

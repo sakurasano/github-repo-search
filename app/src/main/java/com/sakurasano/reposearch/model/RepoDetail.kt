@@ -4,6 +4,7 @@ package com.sakurasano.reposearch.model
  * リポジトリ詳細画面で表示するモデル。
  */
 data class RepoDetail(
+    val id: Long,
     val name: String,
     val fullName: String,
     val htmlUrl: String,

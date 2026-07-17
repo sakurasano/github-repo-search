@@ -79,6 +79,7 @@ class RepoDetailViewModelTest {
     }
 
     private fun sampleDetail(name: String = "nowinandroid") = RepoDetail(
+        id = name.hashCode().toLong(),
         name = name,
         fullName = "android/$name",
         htmlUrl = "https://github.com/android/$name",

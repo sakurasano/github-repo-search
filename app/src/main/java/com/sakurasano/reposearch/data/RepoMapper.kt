@@ -15,6 +15,7 @@ fun RepoSummaryDto.toDomain(): RepoSummary = RepoSummary(
 )
 
 fun RepoDetailDto.toDomain(): RepoDetail = RepoDetail(
+    id = id,
     name = name,
     fullName = fullName,
     htmlUrl = htmlUrl,

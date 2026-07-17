@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RepoDetailDto(
+    val id: Long,
     val name: String,
     @SerialName("full_name") val fullName: String,
     @SerialName("html_url") val htmlUrl: String,

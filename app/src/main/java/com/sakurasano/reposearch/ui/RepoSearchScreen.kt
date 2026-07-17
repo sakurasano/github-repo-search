@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +65,7 @@ internal fun filterHistory(history: List<String>, query: String): List<String> =
 @Composable
 fun RepoSearchScreen(
     onRepoClick: (RepoSummary) -> Unit,
+    onOpenFavorites: () -> Unit,
     themeViewModel: ThemeViewModel,
     modifier: Modifier = Modifier,
     repoSearchViewModel: RepoSearchViewModel = hiltViewModel(),
@@ -86,7 +86,15 @@ fun RepoSearchScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
-                actions = { ThemeMenu(themeViewModel) },
+                actions = {
+                    IconButton(onClick = onOpenFavorites) {
+                        Icon(
+                            imageVector = Icons.Filled.Star,
+                            contentDescription = stringResource(R.string.cd_favorites),
+                        )
+                    }
+                    ThemeMenu(themeViewModel)
+                },
             )
         },
     ) { innerPadding ->
@@ -260,42 +268,4 @@ private fun ThemeMode.labelRes(): Int = when (this) {
     ThemeMode.SYSTEM -> R.string.theme_system
     ThemeMode.LIGHT -> R.string.theme_light
     ThemeMode.DARK -> R.string.theme_dark
-}
-
-@Composable
-private fun RepoCard(repo: RepoSummary, onClick: () -> Unit) {
-    ElevatedCard(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OwnerAvatar(url = repo.ownerAvatarUrl, size = 40.dp)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = repo.fullName, style = MaterialTheme.typography.titleMedium)
-                if (repo.description.isNotBlank()) {
-                    Text(
-                        text = repo.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    RepoStat(
-                        icon = Icons.Filled.Star,
-                        value = repo.starCount.toString(),
-                        contentDescription = stringResource(R.string.cd_stars),
-                    )
-                    if (repo.language.isNotBlank()) {
-                        LanguageLabel(language = repo.language)
-                    }
-                }
-            }
-        }
-    }
 }

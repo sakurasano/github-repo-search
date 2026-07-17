@@ -32,9 +32,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,17 +75,25 @@ fun RepoSearchScreen(
 ) {
     val uiState by repoSearchViewModel.uiState.collectAsStateWithLifecycle()
     val history by repoSearchViewModel.history.collectAsStateWithLifecycle()
+    val favoriteIds by repoSearchViewModel.favoriteIds.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val suggestions = remember(query, history) { filterHistory(history, query) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val saveFailedMessage = stringResource(R.string.favorite_save_failed)
+    LaunchedEffect(Unit) {
+        repoSearchViewModel.saveFailed.collect { snackbarHostState.showSnackbar(saveFailedMessage) }
+    }
+
     // IMEを閉じてもフォーカスが残りサジェストが結果を覆い続けるのを防ぐ逃げ道
     BackHandler(enabled = isFocused) { focusManager.clearFocus() }
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
@@ -175,7 +186,14 @@ fun RepoSearchScreen(
                         items(
                             items = state.repos,
                             key = { it.id },
-                        ) { repo -> RepoCard(repo, onClick = { onRepoClick(repo) }) }
+                        ) { repo ->
+                            RepoCard(
+                                repo = repo,
+                                onClick = { onRepoClick(repo) },
+                                isFavorite = repo.id in favoriteIds,
+                                onToggleFavorite = { repoSearchViewModel.toggleFavorite(repo) },
+                            )
+                        }
                     }
                 }
             }

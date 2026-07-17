@@ -21,6 +21,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -28,6 +29,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,11 +55,17 @@ fun RepoDetailScreen(
     viewModel: RepoDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val openError = stringResource(R.string.detail_open_in_browser_error)
+    val saveFailedMessage = stringResource(R.string.favorite_save_failed)
+
+    LaunchedEffect(Unit) {
+        viewModel.saveFailed.collect { snackbarHostState.showSnackbar(saveFailedMessage) }
+    }
 
     val title = when (val state = uiState) {
         is RepoDetailUiState.Success -> state.repo.name
@@ -80,6 +88,25 @@ fun RepoDetailScreen(
                 },
                 actions = {
                     val state = uiState
+                    if (state is RepoDetailUiState.Success) {
+                        IconButton(onClick = { viewModel.toggleFavorite() }) {
+                            Icon(
+                                imageVector = if (isFavorite) {
+                                    Icons.Filled.Star
+                                } else {
+                                    ImageVector.vectorResource(R.drawable.ic_star_border)
+                                },
+                                contentDescription = stringResource(
+                                    if (isFavorite) R.string.cd_favorite_remove else R.string.cd_favorite_add,
+                                ),
+                                tint = if (isFavorite) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    LocalContentColor.current
+                                },
+                            )
+                        }
+                    }
                     if (state is RepoDetailUiState.Success && state.repo.htmlUrl.isNotBlank()) {
                         IconButton(
                             onClick = {

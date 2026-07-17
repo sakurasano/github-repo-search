@@ -2,15 +2,21 @@ package com.sakurasano.reposearch.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sakurasano.reposearch.data.FavoriteRepository
 import com.sakurasano.reposearch.data.RepoSearchRepository
 import com.sakurasano.reposearch.data.SearchHistoryRepository
 import com.sakurasano.reposearch.model.DataResult
+import com.sakurasano.reposearch.model.RepoSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,6 +25,7 @@ import javax.inject.Inject
 class RepoSearchViewModel @Inject constructor(
     private val repoSearchRepository: RepoSearchRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
+    private val favoriteRepository: FavoriteRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RepoSearchUiState>(RepoSearchUiState.Idle)
@@ -26,6 +33,14 @@ class RepoSearchViewModel @Inject constructor(
 
     val history: StateFlow<List<String>> = searchHistoryRepository.history
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // 各カードの★判定用。読めない場合も検索は使えるべきなので空集合へフォールバックする
+    val favoriteIds: StateFlow<Set<Long>> = favoriteRepository.favoriteIds
+        .catch { emit(emptySet()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    private val _saveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val saveFailed: SharedFlow<Unit> = _saveFailed.asSharedFlow()
 
     private var searchJob: Job? = null
 
@@ -45,6 +60,18 @@ class RepoSearchViewModel @Inject constructor(
                     }
 
                 is DataResult.Failure -> RepoSearchUiState.Error(result.error)
+            }
+        }
+    }
+
+    fun toggleFavorite(repo: RepoSummary) {
+        viewModelScope.launch {
+            _saveFailed.runFavoriteWrite {
+                if (repo.id in favoriteIds.value) {
+                    favoriteRepository.remove(repo.id)
+                } else {
+                    favoriteRepository.add(repo)
+                }
             }
         }
     }

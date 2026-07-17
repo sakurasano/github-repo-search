@@ -3,19 +3,32 @@ package com.sakurasano.reposearch.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sakurasano.reposearch.data.FavoriteRepository
 import com.sakurasano.reposearch.data.RepoDetailRepository
+import com.sakurasano.reposearch.data.toSummary
 import com.sakurasano.reposearch.model.DataResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class RepoDetailViewModel @Inject constructor(
     private val repository: RepoDetailRepository,
+    private val favoriteRepository: FavoriteRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -26,10 +39,40 @@ class RepoDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<RepoDetailUiState>(RepoDetailUiState.Loading)
     val uiState: StateFlow<RepoDetailUiState> = _uiState.asStateFlow()
 
+    // 表示中のリポジトリの登録有無。読めない場合はfalse扱いにして詳細表示を壊さない
+    val isFavorite: StateFlow<Boolean> = uiState
+        .flatMapLatest { state ->
+            if (state is RepoDetailUiState.Success) {
+                favoriteRepository.observeIsFavorite(state.repo.id)
+            } else {
+                flowOf(false)
+            }
+        }
+        .catch { emit(false) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    private val _saveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val saveFailed: SharedFlow<Unit> = _saveFailed.asSharedFlow()
+
     private var fetchJob: Job? = null
 
     init {
         fetch()
+    }
+
+    fun toggleFavorite() {
+        val state = uiState.value
+        if (state !is RepoDetailUiState.Success) return
+        val repo = state.repo
+        viewModelScope.launch {
+            _saveFailed.runFavoriteWrite {
+                if (isFavorite.value) {
+                    favoriteRepository.remove(repo.id)
+                } else {
+                    favoriteRepository.add(repo.toSummary())
+                }
+            }
+        }
     }
 
     fun retry() = fetch()

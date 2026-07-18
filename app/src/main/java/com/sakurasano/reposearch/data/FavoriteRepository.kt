@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -21,7 +23,7 @@ interface FavoriteRepository {
 
     fun observeIsFavorite(id: Long): Flow<Boolean>
 
-    suspend fun add(repo: RepoSummary): DataResult<Unit>
+    suspend fun toggle(repo: RepoSummary): DataResult<Unit>
 
     suspend fun remove(id: Long): DataResult<Unit>
 }
@@ -29,6 +31,8 @@ interface FavoriteRepository {
 class FavoriteRepositoryImpl @Inject constructor(
     private val dao: FavoriteDao,
 ) : FavoriteRepository {
+
+    private val toggleMutex = Mutex()
 
     // 一覧はError表示が要るのでDataResultで返し、★判定は無音でフォールバックする
     override val favorites: Flow<DataResult<List<RepoSummary>>> =
@@ -50,8 +54,16 @@ class FavoriteRepositoryImpl @Inject constructor(
             .retryReads()
             .catch { emit(false) }
 
-    override suspend fun add(repo: RepoSummary): DataResult<Unit> =
-        dbCall { dao.insert(repo.toFavoriteEntity(savedAt = System.currentTimeMillis())) }
+    // 連打しても取り違えないよう、実DBの登録有無を都度確認して1件ずつ順に切り替える
+    override suspend fun toggle(repo: RepoSummary): DataResult<Unit> = toggleMutex.withLock {
+        dbCall {
+            if (dao.existsById(repo.id)) {
+                dao.deleteById(repo.id)
+            } else {
+                dao.insert(repo.toFavoriteEntity(savedAt = System.currentTimeMillis()))
+            }
+        }
+    }
 
     override suspend fun remove(id: Long): DataResult<Unit> =
         dbCall { dao.deleteById(id) }

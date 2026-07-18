@@ -59,14 +59,7 @@ class RepoSearchViewModel @Inject constructor(
     }
 
     fun toggleFavorite(repo: RepoSummary) {
-        viewModelScope.launch {
-            val result = if (repo.id in favoriteIds.value) {
-                favoriteRepository.remove(repo.id)
-            } else {
-                favoriteRepository.add(repo)
-            }
-            writeNotifier.notifyIfFailure(result)
-        }
+        viewModelScope.launch { writeNotifier.notifyIfFailure(favoriteRepository.toggle(repo)) }
     }
 
     fun removeHistory(query: String) {

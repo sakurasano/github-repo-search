@@ -31,10 +31,12 @@ class FakeFavoriteRepository(initial: List<RepoSummary> = emptyList()) : Favorit
     override fun observeIsFavorite(id: Long): Flow<Boolean> =
         state.map { list -> list.any { it.id == id } }
 
-    override suspend fun add(repo: RepoSummary): DataResult<Unit> {
-        if (failWrites) return DataResult.Failure(AppError.Unknown(RuntimeException("insert failed")))
-        if (state.value.none { it.id == repo.id }) {
-            state.value = listOf(repo) + state.value
+    override suspend fun toggle(repo: RepoSummary): DataResult<Unit> {
+        if (failWrites) return DataResult.Failure(AppError.Unknown(RuntimeException("toggle failed")))
+        state.value = if (state.value.any { it.id == repo.id }) {
+            state.value.filterNot { it.id == repo.id }
+        } else {
+            listOf(repo) + state.value
         }
         return DataResult.Success(Unit)
     }

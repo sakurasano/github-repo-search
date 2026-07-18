@@ -57,14 +57,8 @@ class RepoDetailViewModel @Inject constructor(
     fun toggleFavorite() {
         val state = uiState.value
         if (state !is RepoDetailUiState.Success) return
-        val repo = state.repo
         viewModelScope.launch {
-            val result = if (isFavorite.value) {
-                favoriteRepository.remove(repo.id)
-            } else {
-                favoriteRepository.add(repo.toSummary())
-            }
-            writeNotifier.notifyIfFailure(result)
+            writeNotifier.notifyIfFailure(favoriteRepository.toggle(state.repo.toSummary()))
         }
     }
 

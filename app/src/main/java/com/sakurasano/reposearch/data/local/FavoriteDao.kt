@@ -17,6 +17,9 @@ interface FavoriteDao {
     @Query("SELECT EXISTS(SELECT 1 FROM favorite_repos WHERE id = :id)")
     fun observeIsFavorite(id: Long): Flow<Boolean>
 
+    @Query("SELECT EXISTS(SELECT 1 FROM favorite_repos WHERE id = :id)")
+    suspend fun existsById(id: Long): Boolean
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: FavoriteRepoEntity)
 

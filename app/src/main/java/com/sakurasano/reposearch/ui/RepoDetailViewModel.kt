@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -39,7 +38,6 @@ class RepoDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<RepoDetailUiState>(RepoDetailUiState.Loading)
     val uiState: StateFlow<RepoDetailUiState> = _uiState.asStateFlow()
 
-    // 表示中のリポジトリの登録有無。読めない場合はfalse扱いにして詳細表示を壊さない
     val isFavorite: StateFlow<Boolean> = uiState
         .flatMapLatest { state ->
             if (state is RepoDetailUiState.Success) {
@@ -48,7 +46,6 @@ class RepoDetailViewModel @Inject constructor(
                 flowOf(false)
             }
         }
-        .catch { emit(false) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private val _saveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)

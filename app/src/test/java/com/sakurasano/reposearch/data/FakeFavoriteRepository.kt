@@ -1,5 +1,7 @@
 package com.sakurasano.reposearch.data
 
+import com.sakurasano.reposearch.model.AppError
+import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoSummary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,12 +15,15 @@ class FakeFavoriteRepository(initial: List<RepoSummary> = emptyList()) : Favorit
     // trueにするとadd/removeが例外を投げ、書き込み失敗を再現できる
     var failWrites: Boolean = false
 
-    // trueにするとfavoritesの読み取りが例外を投げ、読み取り失敗を再現できる
+    // trueにするとfavoritesが失敗(Failure)を流し、読み取り失敗を再現できる
     var failReads: Boolean = false
 
-    override val favorites: Flow<List<RepoSummary>> = flow {
-        if (failReads) throw RuntimeException("read failed")
-        emitAll(state)
+    override val favorites: Flow<DataResult<List<RepoSummary>>> = flow {
+        if (failReads) {
+            emit(DataResult.Failure(AppError.Unknown(RuntimeException("read failed"))))
+            return@flow
+        }
+        emitAll(state.map { DataResult.Success(it) })
     }
 
     override val favoriteIds: Flow<Set<Long>> = state.map { list -> list.map { it.id }.toSet() }

@@ -1,13 +1,21 @@
 package com.sakurasano.reposearch.data
 
 import com.sakurasano.reposearch.data.local.FavoriteDao
+import com.sakurasano.reposearch.data.local.FavoriteRepoEntity
+import com.sakurasano.reposearch.model.AppError
+import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoSummary
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
+
+private const val READ_RETRY_ATTEMPTS = 3L
 
 interface FavoriteRepository {
-    val favorites: Flow<List<RepoSummary>>
+    val favorites: Flow<DataResult<List<RepoSummary>>>
 
     val favoriteIds: Flow<Set<Long>>
 
@@ -22,14 +30,25 @@ class FavoriteRepositoryImpl @Inject constructor(
     private val dao: FavoriteDao,
 ) : FavoriteRepository {
 
-    // 読み取り失敗はここで握りつぶさず流し、表示(Error/フォールバック)の判断はUI層に委ねる
-    override val favorites: Flow<List<RepoSummary>> =
-        dao.observeAll().map { entities -> entities.map { it.toDomain() } }
+    // 一覧はError表示が要るのでDataResultで返し、★判定は無音でフォールバックする
+    override val favorites: Flow<DataResult<List<RepoSummary>>> =
+        dao.observeAll()
+            .map<List<FavoriteRepoEntity>, DataResult<List<RepoSummary>>> { entities ->
+                DataResult.Success(entities.map { it.toDomain() })
+            }
+            .retryReads()
+            .catch { emit(DataResult.Failure(AppError.Unknown(it))) }
 
     override val favoriteIds: Flow<Set<Long>> =
-        dao.observeFavoriteIds().map { it.toSet() }
+        dao.observeFavoriteIds()
+            .map { it.toSet() }
+            .retryReads()
+            .catch { emit(emptySet()) }
 
-    override fun observeIsFavorite(id: Long): Flow<Boolean> = dao.observeIsFavorite(id)
+    override fun observeIsFavorite(id: Long): Flow<Boolean> =
+        dao.observeIsFavorite(id)
+            .retryReads()
+            .catch { emit(false) }
 
     override suspend fun add(repo: RepoSummary) {
         dao.insert(repo.toFavoriteEntity(savedAt = System.currentTimeMillis()))
@@ -39,3 +58,7 @@ class FavoriteRepositoryImpl @Inject constructor(
         dao.deleteById(id)
     }
 }
+
+// 一時的な読み取り失敗を数回まで再購読して自己回復させる
+private fun <T> Flow<T>.retryReads(): Flow<T> =
+    retryWhen { cause, attempt -> cause !is CancellationException && attempt < READ_RETRY_ATTEMPTS }

@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,9 +33,7 @@ class RepoSearchViewModel @Inject constructor(
     val history: StateFlow<List<String>> = searchHistoryRepository.history
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    // 各カードの★判定用。読めない場合も検索は使えるべきなので空集合へフォールバックする
     val favoriteIds: StateFlow<Set<Long>> = favoriteRepository.favoriteIds
-        .catch { emit(emptySet()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
     private val _saveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)

@@ -23,5 +23,6 @@ object DatabaseModule {
         Room.databaseBuilder(context, AppDatabase::class.java, "app_database").build()
 
     @Provides
+    @Singleton
     fun provideFavoriteDao(database: AppDatabase): FavoriteDao = database.favoriteDao()
 }

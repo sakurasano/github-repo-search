@@ -8,15 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import com.sakurasano.reposearch.R
 import com.sakurasano.reposearch.model.RepoSummary
@@ -70,20 +67,9 @@ fun RepoCard(
             }
             if (onToggleFavorite != null) {
                 IconButton(onClick = onToggleFavorite) {
-                    Icon(
-                        imageVector = if (isFavorite) {
-                            Icons.Filled.Star
-                        } else {
-                            ImageVector.vectorResource(R.drawable.ic_star_border)
-                        },
-                        contentDescription = stringResource(
-                            if (isFavorite) R.string.cd_favorite_remove else R.string.cd_favorite_add,
-                        ),
-                        tint = if (isFavorite) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
+                    FavoriteToggleIcon(
+                        isFavorite = isFavorite,
+                        unfavoritedTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
 class FakeFavoriteRepository(initial: List<RepoSummary> = emptyList()) : FavoriteRepository {
     private val state = MutableStateFlow(initial)
 
-    // trueにするとadd/removeが例外を投げ、書き込み失敗を再現できる
+    // trueにするとadd/removeが失敗(Failure)を返し、書き込み失敗を再現できる
     var failWrites: Boolean = false
 
     // trueにするとfavoritesが失敗(Failure)を流し、読み取り失敗を再現できる
@@ -31,15 +31,17 @@ class FakeFavoriteRepository(initial: List<RepoSummary> = emptyList()) : Favorit
     override fun observeIsFavorite(id: Long): Flow<Boolean> =
         state.map { list -> list.any { it.id == id } }
 
-    override suspend fun add(repo: RepoSummary) {
-        if (failWrites) throw RuntimeException("insert failed")
+    override suspend fun add(repo: RepoSummary): DataResult<Unit> {
+        if (failWrites) return DataResult.Failure(AppError.Unknown(RuntimeException("insert failed")))
         if (state.value.none { it.id == repo.id }) {
             state.value = listOf(repo) + state.value
         }
+        return DataResult.Success(Unit)
     }
 
-    override suspend fun remove(id: Long) {
-        if (failWrites) throw RuntimeException("delete failed")
+    override suspend fun remove(id: Long): DataResult<Unit> {
+        if (failWrites) return DataResult.Failure(AppError.Unknown(RuntimeException("delete failed")))
         state.value = state.value.filterNot { it.id == id }
+        return DataResult.Success(Unit)
     }
 }

@@ -9,12 +9,9 @@ import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -36,8 +33,8 @@ class RepoSearchViewModel @Inject constructor(
     val favoriteIds: StateFlow<Set<Long>> = favoriteRepository.favoriteIds
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
-    private val _saveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val saveFailed: SharedFlow<Unit> = _saveFailed.asSharedFlow()
+    private val writeNotifier = FavoriteWriteNotifier()
+    val saveFailed = writeNotifier.saveFailed
 
     private var searchJob: Job? = null
 
@@ -63,13 +60,12 @@ class RepoSearchViewModel @Inject constructor(
 
     fun toggleFavorite(repo: RepoSummary) {
         viewModelScope.launch {
-            _saveFailed.runFavoriteWrite {
-                if (repo.id in favoriteIds.value) {
-                    favoriteRepository.remove(repo.id)
-                } else {
-                    favoriteRepository.add(repo)
-                }
+            val result = if (repo.id in favoriteIds.value) {
+                favoriteRepository.remove(repo.id)
+            } else {
+                favoriteRepository.add(repo)
             }
+            writeNotifier.notifyIfFailure(result)
         }
     }
 

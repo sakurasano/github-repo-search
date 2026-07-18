@@ -6,12 +6,9 @@ import com.sakurasano.reposearch.data.FavoriteRepository
 import com.sakurasano.reposearch.model.DataResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -43,16 +40,14 @@ class FavoritesViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FavoritesUiState.Loading)
 
-    private val _saveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val saveFailed: SharedFlow<Unit> = _saveFailed.asSharedFlow()
+    private val writeNotifier = FavoriteWriteNotifier()
+    val saveFailed = writeNotifier.saveFailed
 
     fun retry() {
         retryTrigger.value++
     }
 
     fun removeFavorite(id: Long) {
-        viewModelScope.launch {
-            _saveFailed.runFavoriteWrite { favoriteRepository.remove(id) }
-        }
+        viewModelScope.launch { writeNotifier.notifyIfFailure(favoriteRepository.remove(id)) }
     }
 }

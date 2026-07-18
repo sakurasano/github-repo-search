@@ -10,12 +10,9 @@ import com.sakurasano.reposearch.model.DataResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -48,8 +45,8 @@ class RepoDetailViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    private val _saveFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val saveFailed: SharedFlow<Unit> = _saveFailed.asSharedFlow()
+    private val writeNotifier = FavoriteWriteNotifier()
+    val saveFailed = writeNotifier.saveFailed
 
     private var fetchJob: Job? = null
 
@@ -62,13 +59,12 @@ class RepoDetailViewModel @Inject constructor(
         if (state !is RepoDetailUiState.Success) return
         val repo = state.repo
         viewModelScope.launch {
-            _saveFailed.runFavoriteWrite {
-                if (isFavorite.value) {
-                    favoriteRepository.remove(repo.id)
-                } else {
-                    favoriteRepository.add(repo.toSummary())
-                }
+            val result = if (isFavorite.value) {
+                favoriteRepository.remove(repo.id)
+            } else {
+                favoriteRepository.add(repo.toSummary())
             }
+            writeNotifier.notifyIfFailure(result)
         }
     }
 

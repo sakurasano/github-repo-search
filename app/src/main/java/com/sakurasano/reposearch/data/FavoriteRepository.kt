@@ -21,9 +21,9 @@ interface FavoriteRepository {
 
     fun observeIsFavorite(id: Long): Flow<Boolean>
 
-    suspend fun add(repo: RepoSummary)
+    suspend fun add(repo: RepoSummary): DataResult<Unit>
 
-    suspend fun remove(id: Long)
+    suspend fun remove(id: Long): DataResult<Unit>
 }
 
 class FavoriteRepositoryImpl @Inject constructor(
@@ -50,13 +50,11 @@ class FavoriteRepositoryImpl @Inject constructor(
             .retryReads()
             .catch { emit(false) }
 
-    override suspend fun add(repo: RepoSummary) {
-        dao.insert(repo.toFavoriteEntity(savedAt = System.currentTimeMillis()))
-    }
+    override suspend fun add(repo: RepoSummary): DataResult<Unit> =
+        dbCall { dao.insert(repo.toFavoriteEntity(savedAt = System.currentTimeMillis())) }
 
-    override suspend fun remove(id: Long) {
-        dao.deleteById(id)
-    }
+    override suspend fun remove(id: Long): DataResult<Unit> =
+        dbCall { dao.deleteById(id) }
 }
 
 // 一時的な読み取り失敗を数回まで再購読して自己回復させる

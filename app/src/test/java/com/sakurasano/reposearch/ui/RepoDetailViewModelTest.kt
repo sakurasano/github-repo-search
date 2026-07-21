@@ -146,7 +146,7 @@ class RepoDetailViewModelTest {
         )
         val events = mutableListOf<Unit>()
         val job = launch(UnconfinedTestDispatcher(testScheduler)) {
-            viewModel.saveFailed.collect { events.add(it) }
+            viewModel.writeFailed.collect { events.add(it) }
         }
 
         viewModel.toggleFavorite()

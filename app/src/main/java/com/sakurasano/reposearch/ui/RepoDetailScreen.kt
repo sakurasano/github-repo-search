@@ -60,10 +60,10 @@ fun RepoDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val openError = stringResource(R.string.detail_open_in_browser_error)
-    val saveFailedMessage = stringResource(R.string.favorite_save_failed)
+    val writeFailedMessage = stringResource(R.string.favorite_write_failed)
 
     LaunchedEffect(Unit) {
-        viewModel.saveFailed.collect { snackbarHostState.showSnackbar(saveFailedMessage) }
+        viewModel.writeFailed.collect { snackbarHostState.showSnackbar(writeFailedMessage) }
     }
 
     val title = when (val state = uiState) {

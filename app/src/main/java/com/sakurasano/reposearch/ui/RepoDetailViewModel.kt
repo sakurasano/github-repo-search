@@ -46,7 +46,7 @@ class RepoDetailViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private val writeNotifier = FavoriteWriteNotifier()
-    val saveFailed = writeNotifier.saveFailed
+    val writeFailed = writeNotifier.writeFailed
 
     private var fetchJob: Job? = null
 

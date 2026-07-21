@@ -82,9 +82,9 @@ fun RepoSearchScreen(
     val suggestions = remember(query, history) { filterHistory(history, query) }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val saveFailedMessage = stringResource(R.string.favorite_save_failed)
+    val writeFailedMessage = stringResource(R.string.favorite_write_failed)
     LaunchedEffect(Unit) {
-        repoSearchViewModel.saveFailed.collect { snackbarHostState.showSnackbar(saveFailedMessage) }
+        repoSearchViewModel.writeFailed.collect { snackbarHostState.showSnackbar(writeFailedMessage) }
     }
 
     // IMEを閉じてもフォーカスが残りサジェストが結果を覆い続けるのを防ぐ逃げ道

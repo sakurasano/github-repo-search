@@ -84,7 +84,7 @@ class FavoritesViewModelTest {
         val events = mutableListOf<Unit>()
         // Unconfinedで即座に購読を開始させ、失敗イベントを取りこぼさないようにする
         val job = launch(UnconfinedTestDispatcher(testScheduler)) {
-            viewModel.saveFailed.collect { events.add(it) }
+            viewModel.writeFailed.collect { events.add(it) }
         }
 
         viewModel.removeFavorite(repo.id)

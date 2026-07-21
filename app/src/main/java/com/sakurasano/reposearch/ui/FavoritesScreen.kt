@@ -40,10 +40,10 @@ fun FavoritesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val saveFailedMessage = stringResource(R.string.favorite_save_failed)
+    val writeFailedMessage = stringResource(R.string.favorite_write_failed)
 
     LaunchedEffect(Unit) {
-        viewModel.saveFailed.collect { snackbarHostState.showSnackbar(saveFailedMessage) }
+        viewModel.writeFailed.collect { snackbarHostState.showSnackbar(writeFailedMessage) }
     }
 
     Scaffold(

@@ -25,7 +25,7 @@
     <string name="favorites_empty">お気に入りはまだありません</string>
     <string name="favorites_error">お気に入りを読み込めませんでした</string>
     <string name="favorites_retry">再試行</string>
-    <string name="favorite_save_failed">保存に失敗しました</string>
+    <string name="favorite_write_failed">お気に入りの更新に失敗しました</string>
     <string name="cd_favorites">お気に入り一覧</string>
     <string name="cd_favorite_add">お気に入りに追加</string>
     <string name="cd_favorite_remove">お気に入りから削除</string>

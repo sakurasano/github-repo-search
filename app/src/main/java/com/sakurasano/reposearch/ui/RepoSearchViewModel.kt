@@ -34,7 +34,7 @@ class RepoSearchViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
     private val writeNotifier = FavoriteWriteNotifier()
-    val saveFailed = writeNotifier.saveFailed
+    val writeFailed = writeNotifier.writeFailed
 
     private var searchJob: Job? = null
 

@@ -41,7 +41,7 @@ class FavoritesViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FavoritesUiState.Loading)
 
     private val writeNotifier = FavoriteWriteNotifier()
-    val saveFailed = writeNotifier.saveFailed
+    val writeFailed = writeNotifier.writeFailed
 
     fun retry() {
         retryTrigger.value++

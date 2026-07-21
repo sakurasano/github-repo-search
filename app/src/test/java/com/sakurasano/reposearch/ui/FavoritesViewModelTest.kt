@@ -39,12 +39,28 @@ class FavoritesViewModelTest {
 
     @Test
     fun `読み取りに失敗するとErrorになる`() = runTest {
-        val repository = FakeFavoriteRepository().apply { failReads = true }
+        val repository = FakeFavoriteRepository().also { it.failReads = true }
         val viewModel = FavoritesViewModel(repository)
         backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
 
         assertEquals(FavoritesUiState.Error, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `Errorのあと再試行して読み取りに成功するとSuccessになる`() = runTest {
+        val repos = listOf(sampleRepo())
+        val repository = FakeFavoriteRepository(repos).also { it.failReads = true }
+        val viewModel = FavoritesViewModel(repository)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(FavoritesUiState.Error, viewModel.uiState.value)
+
+        repository.failReads = false
+        viewModel.retry()
+        advanceUntilIdle()
+
+        assertEquals(FavoritesUiState.Success(repos), viewModel.uiState.value)
     }
 
     @Test
@@ -63,7 +79,7 @@ class FavoritesViewModelTest {
     @Test
     fun `お気に入りの削除に失敗すると保存失敗イベントが流れる`() = runTest {
         val repo = sampleRepo()
-        val repository = FakeFavoriteRepository(listOf(repo)).apply { failWrites = true }
+        val repository = FakeFavoriteRepository(listOf(repo)).also { it.failWrites = true }
         val viewModel = FavoritesViewModel(repository)
         val events = mutableListOf<Unit>()
         // Unconfinedで即座に購読を開始させ、失敗イベントを取りこぼさないようにする

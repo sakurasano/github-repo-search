@@ -240,7 +240,7 @@ class RepoSearchViewModelTest {
     @Test
     fun `お気に入りの保存に失敗すると保存失敗イベントが流れる`() = runTest {
         val repo = sampleRepo()
-        val favorites = FakeFavoriteRepository().apply { failWrites = true }
+        val favorites = FakeFavoriteRepository().also { it.failWrites = true }
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(DataResult.Success(emptyList())),
             FakeSearchHistoryRepository(),

@@ -22,7 +22,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -100,7 +99,7 @@ fun RepoSearchScreen(
                 actions = {
                     IconButton(onClick = onOpenFavorites) {
                         Icon(
-                            imageVector = Icons.Filled.Star,
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
                             contentDescription = stringResource(R.string.cd_favorites),
                         )
                     }

@@ -20,7 +20,7 @@ import com.sakurasano.reposearch.model.RepoSummary
 
 /**
  * 検索結果とお気に入り一覧で共通のリポジトリ表示カード。
- * [onToggleFavorite] を渡すと末尾にお気に入りトグル（★）を表示する。
+ * [onToggleFavorite] を渡すと末尾にお気に入りトグルを表示する。
  */
 @Composable
 fun RepoCard(

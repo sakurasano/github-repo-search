@@ -1,7 +1,5 @@
 package com.sakurasano.reposearch.ui
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -13,7 +11,7 @@ import androidx.compose.ui.res.vectorResource
 import com.sakurasano.reposearch.R
 
 /**
- * お気に入り状態を表す★アイコン。検索カードと詳細画面で共有する。
+ * お気に入り状態を表すブックマークアイコン。
  */
 @Composable
 fun FavoriteToggleIcon(
@@ -21,11 +19,9 @@ fun FavoriteToggleIcon(
     unfavoritedTint: Color = LocalContentColor.current,
 ) {
     Icon(
-        imageVector = if (isFavorite) {
-            Icons.Filled.Star
-        } else {
-            ImageVector.vectorResource(R.drawable.ic_star_border)
-        },
+        imageVector = ImageVector.vectorResource(
+            if (isFavorite) R.drawable.ic_bookmark else R.drawable.ic_bookmark_border,
+        ),
         contentDescription = stringResource(
             if (isFavorite) R.string.cd_favorite_remove else R.string.cd_favorite_add,
         ),

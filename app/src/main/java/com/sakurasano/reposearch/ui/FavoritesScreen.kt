@@ -67,7 +67,7 @@ fun FavoritesScreen(
             FavoritesUiState.Loading -> LoadingIndicator(Modifier.padding(innerPadding))
 
             FavoritesUiState.Empty -> StatusMessage(
-                icon = ImageVector.vectorResource(R.drawable.ic_star_border),
+                icon = ImageVector.vectorResource(R.drawable.ic_bookmark_border),
                 message = stringResource(R.string.favorites_empty),
                 modifier = Modifier.padding(innerPadding),
             )

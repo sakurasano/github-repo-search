@@ -102,7 +102,7 @@ class RepoDetailViewModelTest {
     }
 
     @Test
-    fun `toggleFavoriteで登録されisFavoriteがtrueになる`() = runTest {
+    fun `未登録のリポジトリをtoggleするとisFavoriteがtrueになる`() = runTest {
         val detail = sampleDetail()
         val viewModel = RepoDetailViewModel(
             FakeRepoDetailRepository(DataResult.Success(detail)),
@@ -119,7 +119,7 @@ class RepoDetailViewModelTest {
     }
 
     @Test
-    fun `登録済みでtoggleFavoriteすると解除される`() = runTest {
+    fun `登録済みをtoggleするとisFavoriteがfalseになる`() = runTest {
         val detail = sampleDetail()
         val viewModel = RepoDetailViewModel(
             FakeRepoDetailRepository(DataResult.Success(detail)),

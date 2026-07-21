@@ -48,7 +48,7 @@ class FavoritesViewModelTest {
     }
 
     @Test
-    fun `removeFavoriteで一覧から消えEmptyになる`() = runTest {
+    fun `お気に入りを削除すると一覧から消えEmptyになる`() = runTest {
         val repo = sampleRepo()
         val repository = FakeFavoriteRepository(listOf(repo))
         val viewModel = FavoritesViewModel(repository)
@@ -61,7 +61,7 @@ class FavoritesViewModelTest {
     }
 
     @Test
-    fun `removeFavoriteが失敗すると保存失敗イベントが流れる`() = runTest {
+    fun `お気に入りの削除に失敗すると保存失敗イベントが流れる`() = runTest {
         val repo = sampleRepo()
         val repository = FakeFavoriteRepository(listOf(repo)).apply { failWrites = true }
         val viewModel = FavoritesViewModel(repository)

@@ -13,6 +13,5 @@ data class FavoriteRepoEntity(
     val ownerAvatarUrl: String,
     val starCount: Int,
     val language: String,
-    // 一覧を追加順（新しい順）に並べるための保存時刻
     val savedAt: Long,
 )

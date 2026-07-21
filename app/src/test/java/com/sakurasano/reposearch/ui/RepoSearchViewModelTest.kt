@@ -204,7 +204,7 @@ class RepoSearchViewModelTest {
     }
 
     @Test
-    fun `未登録のリポジトリをtoggleすると追加される`() = runTest {
+    fun `未登録のリポジトリをtoggleするとお気に入りに追加される`() = runTest {
         val repo = sampleRepo()
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(DataResult.Success(emptyList())),
@@ -221,7 +221,7 @@ class RepoSearchViewModelTest {
     }
 
     @Test
-    fun `登録済みのリポジトリをtoggleすると削除される`() = runTest {
+    fun `登録済みのリポジトリをtoggleするとお気に入りから削除される`() = runTest {
         val repo = sampleRepo()
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(DataResult.Success(emptyList())),

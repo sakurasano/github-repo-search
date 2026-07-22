@@ -45,12 +45,12 @@ class RepoSearchViewModel @Inject constructor(
         searchJob?.cancel() // 進行中の前回検索を打ち切り、遅い前回結果が新しい結果を上書きするのを防ぐ
         searchJob = viewModelScope.launch {
             _uiState.value = RepoSearchUiState.Loading
-            _uiState.value = when (val result = repoSearchRepository.searchRepositories(query)) {
+            _uiState.value = when (val result = repoSearchRepository.searchRepositories(query, page = 1)) {
                 is DataResult.Success ->
-                    if (result.data.isEmpty()) {
+                    if (result.data.items.isEmpty()) {
                         RepoSearchUiState.Empty
                     } else {
-                        RepoSearchUiState.Success(result.data)
+                        RepoSearchUiState.Success(result.data.items)
                     }
 
                 is DataResult.Failure -> RepoSearchUiState.Error(result.error)

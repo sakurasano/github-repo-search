@@ -7,6 +7,7 @@ import com.sakurasano.reposearch.data.FakeSearchHistoryRepository
 import com.sakurasano.reposearch.data.RepoSearchRepository
 import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
+import com.sakurasano.reposearch.model.RepoSearchPage
 import com.sakurasano.reposearch.model.RepoSummary
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +31,7 @@ class RepoSearchViewModelTest {
     fun `検索が成功するとSuccessになる`() = runTest {
         val repos = listOf(sampleRepo())
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(repos)),
+            FakeRepoSearchRepository(searchSuccess(repos)),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
         )
@@ -43,7 +44,7 @@ class RepoSearchViewModelTest {
     @Test
     fun `検索結果が0件だとEmptyになる`() = runTest {
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
         )
@@ -69,7 +70,7 @@ class RepoSearchViewModelTest {
     @Test
     fun `空白のクエリでは検索せずIdleのままになる`() = runTest {
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
         )
@@ -91,8 +92,8 @@ class RepoSearchViewModelTest {
         viewModel.search("new") // 2回目: 1回目をキャンセルして開始し、応答待ちで中断
 
         // あえて新→旧の順で応答を返す（遅い前回=oldが後から返るケース）
-        repo.complete("new", DataResult.Success(newRepos))
-        repo.complete("old", DataResult.Success(oldRepos))
+        repo.complete("new", searchSuccess(newRepos))
+        repo.complete("old", searchSuccess(oldRepos))
 
         // oldはキャンセル済みなので状態を上書きせず、newの結果が残る
         assertEquals(RepoSearchUiState.Success(newRepos), viewModel.uiState.value)
@@ -102,7 +103,7 @@ class RepoSearchViewModelTest {
     fun `検索を実行するとそのクエリが履歴に記録される`() = runTest {
         val history = FakeSearchHistoryRepository()
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(listOf(sampleRepo()))),
+            FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()))),
             history,
             FakeFavoriteRepository(),
         )
@@ -117,7 +118,7 @@ class RepoSearchViewModelTest {
     fun `結果0件でも実行したクエリは履歴に記録される`() = runTest {
         val history = FakeSearchHistoryRepository()
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             history,
             FakeFavoriteRepository(),
         )
@@ -147,7 +148,7 @@ class RepoSearchViewModelTest {
     fun `履歴を削除すると当該クエリが履歴から消える`() = runTest {
         val history = FakeSearchHistoryRepository(listOf("compose", "hilt"))
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             history,
             FakeFavoriteRepository(),
         )
@@ -163,7 +164,7 @@ class RepoSearchViewModelTest {
     fun `履歴を全消去すると履歴が空になる`() = runTest {
         val history = FakeSearchHistoryRepository(listOf("compose", "hilt"))
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             history,
             FakeFavoriteRepository(),
         )
@@ -193,7 +194,7 @@ class RepoSearchViewModelTest {
     fun `既にお気に入りのIDがfavoriteIdsに反映される`() = runTest {
         val repo = sampleRepo()
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(listOf(repo)),
         )
@@ -207,7 +208,7 @@ class RepoSearchViewModelTest {
     fun `未登録のリポジトリをtoggleするとお気に入りに追加される`() = runTest {
         val repo = sampleRepo()
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
         )
@@ -224,7 +225,7 @@ class RepoSearchViewModelTest {
     fun `登録済みのリポジトリをtoggleするとお気に入りから削除される`() = runTest {
         val repo = sampleRepo()
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(listOf(repo)),
         )
@@ -242,7 +243,7 @@ class RepoSearchViewModelTest {
         val repo = sampleRepo()
         val favorites = FakeFavoriteRepository().also { it.failWrites = true }
         val viewModel = RepoSearchViewModel(
-            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             favorites,
         )
@@ -268,6 +269,9 @@ class RepoSearchViewModelTest {
         starCount = 100,
         language = "Kotlin",
     )
+
+    private fun searchSuccess(repos: List<RepoSummary> = emptyList(), hasMore: Boolean = false) =
+        DataResult.Success(RepoSearchPage(repos, hasMore))
 }
 
 /**
@@ -275,12 +279,12 @@ class RepoSearchViewModelTest {
  * [complete] を呼ぶまで [searchRepositories] は中断したままになる
  */
 private class GatedFakeRepository : RepoSearchRepository {
-    private val gates = mutableMapOf<String, CompletableDeferred<DataResult<List<RepoSummary>>>>()
+    private val gates = mutableMapOf<String, CompletableDeferred<DataResult<RepoSearchPage>>>()
 
-    override suspend fun searchRepositories(query: String): DataResult<List<RepoSummary>> =
+    override suspend fun searchRepositories(query: String, page: Int): DataResult<RepoSearchPage> =
         gates.getOrPut(query) { CompletableDeferred() }.await()
 
-    fun complete(query: String, result: DataResult<List<RepoSummary>>) {
+    fun complete(query: String, result: DataResult<RepoSearchPage>) {
         gates.getOrPut(query) { CompletableDeferred() }.complete(result)
     }
 }

@@ -48,6 +48,9 @@ class FavoritesViewModel @Inject constructor(
     }
 
     fun removeFavorite(id: Long) {
-        viewModelScope.launch { writeNotifier.notifyIfFailure(favoriteRepository.remove(id)) }
+        viewModelScope.launch {
+            val result = favoriteRepository.remove(id)
+            writeNotifier.notifyIfFailure(result)
+        }
     }
 }

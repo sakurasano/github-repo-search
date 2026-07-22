@@ -58,7 +58,8 @@ class RepoDetailViewModel @Inject constructor(
         val state = uiState.value
         if (state !is RepoDetailUiState.Success) return
         viewModelScope.launch {
-            writeNotifier.notifyIfFailure(favoriteRepository.toggle(state.repo.toSummary()))
+            val result = favoriteRepository.toggle(state.repo.toSummary())
+            writeNotifier.notifyIfFailure(result)
         }
     }
 

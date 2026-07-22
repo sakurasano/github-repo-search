@@ -34,7 +34,7 @@ class FavoriteRepositoryImpl @Inject constructor(
 
     private val toggleMutex = Mutex()
 
-    // 一覧はError表示が要るのでDataResultで返し、★判定は無音でフォールバックする
+    // 一覧はError表示が要るのでDataResultで返し、お気に入り判定は無音でフォールバックする
     override val favorites: Flow<DataResult<List<RepoSummary>>> =
         dao.observeAll()
             .map<List<FavoriteRepoEntity>, DataResult<List<RepoSummary>>> { entities ->

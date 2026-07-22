@@ -70,7 +70,7 @@ class RepoSearchViewModel @Inject constructor(
 
     fun loadMore() {
         val current = _uiState.value
-        // 一覧表示中で、かつ読み込み中でも終端でもないときだけ次ページを取りに行く（失敗状態からのリトライは許可）
+        // 失敗状態からのリトライは許可する
         if (current !is RepoSearchUiState.Success) return
         if (current.loadMoreState == LoadMoreState.Loading || current.loadMoreState == LoadMoreState.End) return
         loadMoreJob?.cancel()

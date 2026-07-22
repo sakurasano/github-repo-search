@@ -36,24 +36,60 @@ class RepoSearchViewModel @Inject constructor(
     private val writeNotifier = FavoriteWriteNotifier()
     val writeFailed = writeNotifier.writeFailed
 
+    // 確定した検索キーワード。一覧のスクロール位置はこれを識別子として保持/リセットされる
+    private val _searchedQuery = MutableStateFlow("")
+    val searchedQuery: StateFlow<String> = _searchedQuery.asStateFlow()
+
     private var searchJob: Job? = null
+    private var loadMoreJob: Job? = null
+    private var currentPage: Int = 0
 
     fun search(query: String) {
         if (query.isBlank()) return
         // 履歴の記録はsearchJobと別に起動する。連続検索でsearchJobをcancelしても記録が巻き添えにならないようにするため
         viewModelScope.launch { searchHistoryRepository.record(query) }
-        searchJob?.cancel() // 進行中の前回検索を打ち切り、遅い前回結果が新しい結果を上書きするのを防ぐ
+        // 進行中の検索と追加読み込みをともに打ち切り、遅い前回結果が新しい結果を上書きするのを防ぐ
+        searchJob?.cancel()
+        loadMoreJob?.cancel()
+        _searchedQuery.value = query
         searchJob = viewModelScope.launch {
             _uiState.value = RepoSearchUiState.Loading
-            _uiState.value = when (val result = repoSearchRepository.searchRepositories(query)) {
-                is DataResult.Success ->
-                    if (result.data.isEmpty()) {
+            val result = repoSearchRepository.searchRepositories(query, page = 1)
+            _uiState.value = when (result) {
+                is DataResult.Success -> {
+                    currentPage = 1
+                    val page = result.data
+                    if (page.items.isEmpty()) {
                         RepoSearchUiState.Empty
                     } else {
-                        RepoSearchUiState.Success(result.data)
+                        RepoSearchUiState.Success(page.items, LoadMoreState.from(page.hasMore))
                     }
+                }
 
                 is DataResult.Failure -> RepoSearchUiState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadMore() {
+        val current = _uiState.value
+        // 失敗状態からのリトライは許可する
+        if (current !is RepoSearchUiState.Success) return
+        if (current.loadMoreState == LoadMoreState.Loading || current.loadMoreState == LoadMoreState.End) return
+        loadMoreJob?.cancel()
+        loadMoreJob = viewModelScope.launch {
+            _uiState.value = current.copy(loadMoreState = LoadMoreState.Loading)
+            val result = repoSearchRepository.searchRepositories(_searchedQuery.value, page = currentPage + 1)
+            _uiState.value = when (result) {
+                is DataResult.Success -> {
+                    currentPage += 1
+                    val page = result.data
+                    // ページ間で重複するIDを取り除く（LazyColumnのkey重複によるクラッシュを防ぐ）
+                    val merged = (current.repos + page.items).distinctBy { it.id }
+                    RepoSearchUiState.Success(merged, LoadMoreState.from(page.hasMore))
+                }
+
+                is DataResult.Failure -> current.copy(loadMoreState = LoadMoreState.Error(result.error))
             }
         }
     }

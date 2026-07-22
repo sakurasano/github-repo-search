@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RepoSearchResponseDto(
+    @SerialName("total_count") val totalCount: Int,
     val items: List<RepoSummaryDto> = emptyList(),
 )
 

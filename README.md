@@ -32,7 +32,7 @@
 | DI | Hilt（KSP） |
 | 通信 | Retrofit + kotlinx.serialization |
 | ローカル保存 | Room |
-| ページング | Paging 3 |
+| ページング | 自前実装（ページ番号方式の追加読み込み） |
 | 画像読み込み | Coil |
 | 画面遷移 | Navigation Compose（型安全ナビゲーション） |
 | テスト | JUnit4 + kotlinx-coroutines-test |

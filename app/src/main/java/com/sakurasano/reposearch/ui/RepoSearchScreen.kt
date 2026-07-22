@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -22,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,9 +38,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +61,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sakurasano.reposearch.R
 import com.sakurasano.reposearch.model.RepoSummary
 import com.sakurasano.reposearch.model.ThemeMode
+
+// 末尾からこの件数手前まで表示されたら次ページの先読みを始める
+private const val LOAD_MORE_PREFETCH_THRESHOLD = 5
+private const val LOAD_MORE_FOOTER_KEY = "load_more_footer"
 
 internal fun filterHistory(history: List<String>, query: String): List<String> =
     if (query.isBlank()) {
@@ -80,6 +90,10 @@ fun RepoSearchScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val suggestions = remember(query, history) { filterHistory(history, query) }
+    val searchedQuery by repoSearchViewModel.searchedQuery.collectAsStateWithLifecycle()
+    // 検索キーワードを識別子にしてスクロール位置を保持する。キーワードが変われば新規検索なので
+    // 位置を作り直して先頭に戻し、同じキーワードのまま(継ぎ足し・サジェスト往復・回転)なら保つ
+    val listState = rememberSaveable(searchedQuery, saver = LazyListState.Saver) { LazyListState() }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val writeFailedMessage = stringResource(R.string.favorite_write_failed)
@@ -157,7 +171,7 @@ fun RepoSearchScreen(
                     onClearAll = { repoSearchViewModel.clearHistory() },
                 )
             } else {
-                when (val state = uiState) {
+                when (val uiState = uiState) {
                     RepoSearchUiState.Idle -> StatusMessage(
                         icon = Icons.Filled.Search,
                         message = stringResource(R.string.search_prompt),
@@ -172,26 +186,53 @@ fun RepoSearchScreen(
 
                     is RepoSearchUiState.Error -> StatusMessage(
                         icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
-                        message = stringResource(state.error.messageRes()),
+                        message = stringResource(uiState.error.messageRes()),
                         onRetry = { repoSearchViewModel.search(query) },
                         retryLabel = stringResource(R.string.search_retry),
                     )
 
-                    is RepoSearchUiState.Success -> LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(
-                            items = state.repos,
-                            key = { it.id },
-                        ) { repo ->
-                            RepoCard(
-                                repo = repo,
-                                onClick = { onRepoClick(repo) },
-                                isFavorite = repo.id in favoriteIds,
-                                onToggleFavorite = { repoSearchViewModel.toggleFavorite(repo) },
-                            )
+                    is RepoSearchUiState.Success -> {
+                        // 末尾付近まで表示されたら次ページを先読みする。待機中(Idle)のときだけ自動発火し、失敗状態からの再取得はフッターのボタン操作に委ねる
+                        val shouldLoadMore by remember {
+                            derivedStateOf {
+                                val info = listState.layoutInfo
+                                val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+                                lastVisible >= info.totalItemsCount - 1 - LOAD_MORE_PREFETCH_THRESHOLD
+                            }
+                        }
+                        LaunchedEffect(shouldLoadMore, uiState.loadMoreState) {
+                            if (shouldLoadMore && uiState.loadMoreState == LoadMoreState.Idle) {
+                                repoSearchViewModel.loadMore()
+                            }
+                        }
+
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            items(
+                                items = uiState.repos,
+                                key = { it.id },
+                            ) { repo ->
+                                RepoCard(
+                                    repo = repo,
+                                    onClick = { onRepoClick(repo) },
+                                    isFavorite = repo.id in favoriteIds,
+                                    onToggleFavorite = { repoSearchViewModel.toggleFavorite(repo) },
+                                )
+                            }
+                            if (uiState.loadMoreState == LoadMoreState.Loading ||
+                                uiState.loadMoreState is LoadMoreState.Error
+                            ) {
+                                item(key = LOAD_MORE_FOOTER_KEY) {
+                                    LoadMoreFooter(
+                                        loadMoreState = uiState.loadMoreState,
+                                        onRetry = { repoSearchViewModel.loadMore() },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -285,4 +326,36 @@ private fun ThemeMode.labelRes(): Int = when (this) {
     ThemeMode.SYSTEM -> R.string.theme_system
     ThemeMode.LIGHT -> R.string.theme_light
     ThemeMode.DARK -> R.string.theme_dark
+}
+
+@Composable
+private fun LoadMoreFooter(
+    loadMoreState: LoadMoreState,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (loadMoreState) {
+            LoadMoreState.Loading -> CircularProgressIndicator(modifier = Modifier.size(32.dp))
+
+            is LoadMoreState.Error -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = stringResource(loadMoreState.error.messageRes()),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = onRetry) { Text(stringResource(R.string.search_retry)) }
+            }
+
+            LoadMoreState.Idle, LoadMoreState.End -> Unit
+        }
+    }
 }

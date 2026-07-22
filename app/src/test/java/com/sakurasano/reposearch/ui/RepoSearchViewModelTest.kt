@@ -269,7 +269,7 @@ class RepoSearchViewModelTest {
 
         viewModel.search("compose")
 
-        assertEquals(LoadMoreState.Idle, (viewModel.uiState.value as RepoSearchUiState.Success).loadMore)
+        assertEquals(LoadMoreState.Idle, (viewModel.uiState.value as RepoSearchUiState.Success).loadMoreState)
     }
 
     @Test

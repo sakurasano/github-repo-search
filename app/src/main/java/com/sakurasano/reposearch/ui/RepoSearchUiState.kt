@@ -9,7 +9,8 @@ sealed interface RepoSearchUiState {
     data object Empty : RepoSearchUiState // 検索は成功したが結果が0件
     data class Success(
         val repos: List<RepoSummary>,
-        val loadMore: LoadMoreState = LoadMoreState.Idle,
+        val loadMoreState: LoadMoreState = LoadMoreState.Idle,
     ) : RepoSearchUiState
+
     data class Error(val error: AppError) : RepoSearchUiState
 }

@@ -72,10 +72,10 @@ class RepoSearchViewModel @Inject constructor(
         val current = _uiState.value
         // 一覧表示中で、かつ読み込み中でも終端でもないときだけ次ページを取りに行く（失敗状態からのリトライは許可）
         if (current !is RepoSearchUiState.Success) return
-        if (current.loadMore == LoadMoreState.Loading || current.loadMore == LoadMoreState.End) return
+        if (current.loadMoreState == LoadMoreState.Loading || current.loadMoreState == LoadMoreState.End) return
         loadMoreJob?.cancel()
         loadMoreJob = viewModelScope.launch {
-            _uiState.value = current.copy(loadMore = LoadMoreState.Loading)
+            _uiState.value = current.copy(loadMoreState = LoadMoreState.Loading)
             val result = repoSearchRepository.searchRepositories(currentQuery, page = currentPage + 1)
             _uiState.value = when (result) {
                 is DataResult.Success -> {
@@ -86,7 +86,7 @@ class RepoSearchViewModel @Inject constructor(
                     RepoSearchUiState.Success(merged, LoadMoreState.from(page.hasMore))
                 }
 
-                is DataResult.Failure -> current.copy(loadMore = LoadMoreState.Error(result.error))
+                is DataResult.Failure -> current.copy(loadMoreState = LoadMoreState.Error(result.error))
             }
         }
     }

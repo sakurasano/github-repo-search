@@ -409,6 +409,53 @@ class RepoSearchViewModelTest {
         assertEquals(listOf(shared, sampleRepo("a"), sampleRepo("b")), result)
     }
 
+    @Test
+    fun `検索するとそのクエリが現在の検索キーワードになる`() = runTest {
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()))),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+        )
+
+        viewModel.search("compose")
+
+        assertEquals("compose", viewModel.searchedQuery.value)
+    }
+
+    @Test
+    fun `追加読み込みしても現在の検索キーワードは変わらない`() = runTest {
+        val page1 = listOf(sampleRepo("a"))
+        val page2 = listOf(sampleRepo("b"))
+        val viewModel = RepoSearchViewModel(
+            PagedFakeRepository(
+                mapOf(
+                    1 to searchSuccess(page1, hasMore = true),
+                    2 to searchSuccess(page2, hasMore = false),
+                ),
+            ),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+        )
+
+        viewModel.search("compose")
+        viewModel.loadMore()
+
+        assertEquals("compose", viewModel.searchedQuery.value)
+    }
+
+    @Test
+    fun `空白のクエリでは現在の検索キーワードは変わらない`() = runTest {
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(searchSuccess()),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+        )
+
+        viewModel.search("   ")
+
+        assertEquals("", viewModel.searchedQuery.value)
+    }
+
     private fun sampleRepo(name: String = "nowinandroid") = RepoSummary(
         id = name.hashCode().toLong(),
         name = name,

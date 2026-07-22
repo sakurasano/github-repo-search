@@ -36,9 +36,12 @@ class RepoSearchViewModel @Inject constructor(
     private val writeNotifier = FavoriteWriteNotifier()
     val writeFailed = writeNotifier.writeFailed
 
+    // 確定した検索キーワード。一覧のスクロール位置はこれを識別子として保持/リセットされる
+    private val _searchedQuery = MutableStateFlow("")
+    val searchedQuery: StateFlow<String> = _searchedQuery.asStateFlow()
+
     private var searchJob: Job? = null
     private var loadMoreJob: Job? = null
-    private var currentQuery: String = ""
     private var currentPage: Int = 0
 
     fun search(query: String) {
@@ -48,7 +51,7 @@ class RepoSearchViewModel @Inject constructor(
         // 進行中の検索と追加読み込みをともに打ち切り、遅い前回結果が新しい結果を上書きするのを防ぐ
         searchJob?.cancel()
         loadMoreJob?.cancel()
-        currentQuery = query
+        _searchedQuery.value = query
         searchJob = viewModelScope.launch {
             _uiState.value = RepoSearchUiState.Loading
             val result = repoSearchRepository.searchRepositories(query, page = 1)
@@ -76,7 +79,7 @@ class RepoSearchViewModel @Inject constructor(
         loadMoreJob?.cancel()
         loadMoreJob = viewModelScope.launch {
             _uiState.value = current.copy(loadMoreState = LoadMoreState.Loading)
-            val result = repoSearchRepository.searchRepositories(currentQuery, page = currentPage + 1)
+            val result = repoSearchRepository.searchRepositories(_searchedQuery.value, page = currentPage + 1)
             _uiState.value = when (result) {
                 is DataResult.Success -> {
                     currentPage += 1

@@ -22,10 +22,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,9 +31,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,27 +67,44 @@ internal fun filterHistory(history: List<String>, query: String): List<String> =
 @Composable
 fun RepoSearchScreen(
     onRepoClick: (RepoSummary) -> Unit,
+    onOpenFavorites: () -> Unit,
     themeViewModel: ThemeViewModel,
     modifier: Modifier = Modifier,
     repoSearchViewModel: RepoSearchViewModel = hiltViewModel(),
 ) {
     val uiState by repoSearchViewModel.uiState.collectAsStateWithLifecycle()
     val history by repoSearchViewModel.history.collectAsStateWithLifecycle()
+    val favoriteIds by repoSearchViewModel.favoriteIds.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val suggestions = remember(query, history) { filterHistory(history, query) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val writeFailedMessage = stringResource(R.string.favorite_write_failed)
+    LaunchedEffect(Unit) {
+        repoSearchViewModel.writeFailed.collect { snackbarHostState.showSnackbar(writeFailedMessage) }
+    }
+
     // IMEを閉じてもフォーカスが残りサジェストが結果を覆い続けるのを防ぐ逃げ道
     BackHandler(enabled = isFocused) { focusManager.clearFocus() }
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
-                actions = { ThemeMenu(themeViewModel) },
+                actions = {
+                    IconButton(onClick = onOpenFavorites) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
+                            contentDescription = stringResource(R.string.cd_favorites),
+                        )
+                    }
+                    ThemeMenu(themeViewModel)
+                },
             )
         },
     ) { innerPadding ->
@@ -167,7 +185,14 @@ fun RepoSearchScreen(
                         items(
                             items = state.repos,
                             key = { it.id },
-                        ) { repo -> RepoCard(repo, onClick = { onRepoClick(repo) }) }
+                        ) { repo ->
+                            RepoCard(
+                                repo = repo,
+                                onClick = { onRepoClick(repo) },
+                                isFavorite = repo.id in favoriteIds,
+                                onToggleFavorite = { repoSearchViewModel.toggleFavorite(repo) },
+                            )
+                        }
                     }
                 }
             }
@@ -260,42 +285,4 @@ private fun ThemeMode.labelRes(): Int = when (this) {
     ThemeMode.SYSTEM -> R.string.theme_system
     ThemeMode.LIGHT -> R.string.theme_light
     ThemeMode.DARK -> R.string.theme_dark
-}
-
-@Composable
-private fun RepoCard(repo: RepoSummary, onClick: () -> Unit) {
-    ElevatedCard(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OwnerAvatar(url = repo.ownerAvatarUrl, size = 40.dp)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = repo.fullName, style = MaterialTheme.typography.titleMedium)
-                if (repo.description.isNotBlank()) {
-                    Text(
-                        text = repo.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    RepoStat(
-                        icon = Icons.Filled.Star,
-                        value = repo.starCount.toString(),
-                        contentDescription = stringResource(R.string.cd_stars),
-                    )
-                    if (repo.language.isNotBlank()) {
-                        LanguageLabel(language = repo.language)
-                    }
-                }
-            }
-        }
-    }
 }

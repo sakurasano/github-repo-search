@@ -1,5 +1,7 @@
 package com.sakurasano.reposearch.di
 
+import com.sakurasano.reposearch.data.FavoriteRepository
+import com.sakurasano.reposearch.data.FavoriteRepositoryImpl
 import com.sakurasano.reposearch.data.RepoDetailRepository
 import com.sakurasano.reposearch.data.RepoDetailRepositoryImpl
 import com.sakurasano.reposearch.data.RepoSearchRepository
@@ -28,4 +30,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindSearchHistoryRepository(impl: SearchHistoryRepositoryImpl): SearchHistoryRepository
+
+    @Binds
+    abstract fun bindFavoriteRepository(impl: FavoriteRepositoryImpl): FavoriteRepository
 }

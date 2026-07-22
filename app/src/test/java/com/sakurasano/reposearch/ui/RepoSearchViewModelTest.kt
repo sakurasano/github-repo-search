@@ -1,6 +1,7 @@
 package com.sakurasano.reposearch.ui
 
 import com.sakurasano.reposearch.MainDispatcherRule
+import com.sakurasano.reposearch.data.FakeFavoriteRepository
 import com.sakurasano.reposearch.data.FakeRepoSearchRepository
 import com.sakurasano.reposearch.data.FakeSearchHistoryRepository
 import com.sakurasano.reposearch.data.RepoSearchRepository
@@ -9,6 +10,8 @@ import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoSummary
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -29,6 +32,7 @@ class RepoSearchViewModelTest {
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(DataResult.Success(repos)),
             FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
         )
 
         viewModel.search("compose")
@@ -41,6 +45,7 @@ class RepoSearchViewModelTest {
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(DataResult.Success(emptyList())),
             FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
         )
 
         viewModel.search("no-such-repository")
@@ -53,6 +58,7 @@ class RepoSearchViewModelTest {
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(DataResult.Failure(AppError.Network)),
             FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
         )
 
         viewModel.search("compose")
@@ -65,6 +71,7 @@ class RepoSearchViewModelTest {
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(DataResult.Success(emptyList())),
             FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
         )
 
         viewModel.search("   ")
@@ -75,7 +82,7 @@ class RepoSearchViewModelTest {
     @Test
     fun `連続検索では後の検索が優先され前の検索結果で上書きされない`() = runTest {
         val repo = GatedFakeRepository()
-        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository())
+        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository(), FakeFavoriteRepository())
 
         val oldRepos = listOf(sampleRepo("old"))
         val newRepos = listOf(sampleRepo("new"))
@@ -94,8 +101,11 @@ class RepoSearchViewModelTest {
     @Test
     fun `検索を実行するとそのクエリが履歴に記録される`() = runTest {
         val history = FakeSearchHistoryRepository()
-        val viewModel =
-            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(listOf(sampleRepo()))), history)
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(listOf(sampleRepo()))),
+            history,
+            FakeFavoriteRepository(),
+        )
 
         viewModel.search("compose")
         advanceUntilIdle()
@@ -106,8 +116,11 @@ class RepoSearchViewModelTest {
     @Test
     fun `結果0件でも実行したクエリは履歴に記録される`() = runTest {
         val history = FakeSearchHistoryRepository()
-        val viewModel =
-            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(emptyList())), history)
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            history,
+            FakeFavoriteRepository(),
+        )
 
         viewModel.search("no-such-repository")
         advanceUntilIdle()
@@ -118,8 +131,11 @@ class RepoSearchViewModelTest {
     @Test
     fun `検索が失敗しても実行したクエリは履歴に記録される`() = runTest {
         val history = FakeSearchHistoryRepository()
-        val viewModel =
-            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Failure(AppError.Network)), history)
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Failure(AppError.Network)),
+            history,
+            FakeFavoriteRepository(),
+        )
 
         viewModel.search("compose")
         advanceUntilIdle()
@@ -130,8 +146,11 @@ class RepoSearchViewModelTest {
     @Test
     fun `履歴を削除すると当該クエリが履歴から消える`() = runTest {
         val history = FakeSearchHistoryRepository(listOf("compose", "hilt"))
-        val viewModel =
-            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(emptyList())), history)
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            history,
+            FakeFavoriteRepository(),
+        )
 
         viewModel.removeHistory("compose")
         advanceUntilIdle()
@@ -143,8 +162,11 @@ class RepoSearchViewModelTest {
     @Test
     fun `履歴を全消去すると履歴が空になる`() = runTest {
         val history = FakeSearchHistoryRepository(listOf("compose", "hilt"))
-        val viewModel =
-            RepoSearchViewModel(FakeRepoSearchRepository(DataResult.Success(emptyList())), history)
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            history,
+            FakeFavoriteRepository(),
+        )
 
         viewModel.clearHistory()
         advanceUntilIdle()
@@ -156,7 +178,7 @@ class RepoSearchViewModelTest {
     fun `連続検索で前の検索が中断されても両方のクエリが記録される`() = runTest {
         val history = FakeSearchHistoryRepository()
         val repo = GatedFakeRepository()
-        val viewModel = RepoSearchViewModel(repo, history)
+        val viewModel = RepoSearchViewModel(repo, history, FakeFavoriteRepository())
 
         viewModel.search("kotlin") // 応答待ちで中断（searchJob進行中）
         viewModel.search("compose") // searchJobをキャンセルして再開
@@ -165,6 +187,75 @@ class RepoSearchViewModelTest {
         // 記録はsearchJobと別に起動するため、キャンセルされた前回検索のクエリも残る
         assertTrue(history.history.value.contains("kotlin"))
         assertTrue(history.history.value.contains("compose"))
+    }
+
+    @Test
+    fun `既にお気に入りのIDがfavoriteIdsに反映される`() = runTest {
+        val repo = sampleRepo()
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(listOf(repo)),
+        )
+        backgroundScope.launch { viewModel.favoriteIds.collect {} }
+        advanceUntilIdle()
+
+        assertTrue(repo.id in viewModel.favoriteIds.value)
+    }
+
+    @Test
+    fun `未登録のリポジトリをtoggleするとお気に入りに追加される`() = runTest {
+        val repo = sampleRepo()
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+        )
+        backgroundScope.launch { viewModel.favoriteIds.collect {} }
+        advanceUntilIdle()
+
+        viewModel.toggleFavorite(repo)
+        advanceUntilIdle()
+
+        assertTrue(repo.id in viewModel.favoriteIds.value)
+    }
+
+    @Test
+    fun `登録済みのリポジトリをtoggleするとお気に入りから削除される`() = runTest {
+        val repo = sampleRepo()
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(listOf(repo)),
+        )
+        backgroundScope.launch { viewModel.favoriteIds.collect {} }
+        advanceUntilIdle()
+
+        viewModel.toggleFavorite(repo)
+        advanceUntilIdle()
+
+        assertFalse(repo.id in viewModel.favoriteIds.value)
+    }
+
+    @Test
+    fun `お気に入りの保存に失敗すると保存失敗イベントが流れる`() = runTest {
+        val repo = sampleRepo()
+        val favorites = FakeFavoriteRepository().also { it.failWrites = true }
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(DataResult.Success(emptyList())),
+            FakeSearchHistoryRepository(),
+            favorites,
+        )
+        val events = mutableListOf<Unit>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.writeFailed.collect { events.add(it) }
+        }
+
+        viewModel.toggleFavorite(repo)
+        advanceUntilIdle()
+        job.cancel()
+
+        assertEquals(1, events.size)
     }
 
     private fun sampleRepo(name: String = "nowinandroid") = RepoSummary(

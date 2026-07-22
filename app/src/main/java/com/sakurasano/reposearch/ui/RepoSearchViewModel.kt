@@ -2,9 +2,11 @@ package com.sakurasano.reposearch.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sakurasano.reposearch.data.FavoriteRepository
 import com.sakurasano.reposearch.data.RepoSearchRepository
 import com.sakurasano.reposearch.data.SearchHistoryRepository
 import com.sakurasano.reposearch.model.DataResult
+import com.sakurasano.reposearch.model.RepoSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,7 @@ import javax.inject.Inject
 class RepoSearchViewModel @Inject constructor(
     private val repoSearchRepository: RepoSearchRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
+    private val favoriteRepository: FavoriteRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RepoSearchUiState>(RepoSearchUiState.Idle)
@@ -26,6 +29,12 @@ class RepoSearchViewModel @Inject constructor(
 
     val history: StateFlow<List<String>> = searchHistoryRepository.history
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val favoriteIds: StateFlow<Set<Long>> = favoriteRepository.favoriteIds
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    private val writeNotifier = FavoriteWriteNotifier()
+    val writeFailed = writeNotifier.writeFailed
 
     private var searchJob: Job? = null
 
@@ -46,6 +55,13 @@ class RepoSearchViewModel @Inject constructor(
 
                 is DataResult.Failure -> RepoSearchUiState.Error(result.error)
             }
+        }
+    }
+
+    fun toggleFavorite(repo: RepoSummary) {
+        viewModelScope.launch {
+            val result = favoriteRepository.toggle(repo)
+            writeNotifier.notifyIfFailure(result)
         }
     }
 

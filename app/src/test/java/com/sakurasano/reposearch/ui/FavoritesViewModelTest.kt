@@ -1,0 +1,107 @@
+package com.sakurasano.reposearch.ui
+
+import com.sakurasano.reposearch.MainDispatcherRule
+import com.sakurasano.reposearch.data.FakeFavoriteRepository
+import com.sakurasano.reposearch.model.RepoSummary
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class FavoritesViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    @Test
+    fun `お気に入りが0件だとEmptyになる`() = runTest {
+        val viewModel = FavoritesViewModel(FakeFavoriteRepository())
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(FavoritesUiState.Empty, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `お気に入りがあるとSuccessになる`() = runTest {
+        val repos = listOf(sampleRepo())
+        val viewModel = FavoritesViewModel(FakeFavoriteRepository(repos))
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(FavoritesUiState.Success(repos), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `読み取りに失敗するとErrorになる`() = runTest {
+        val repository = FakeFavoriteRepository().also { it.failReads = true }
+        val viewModel = FavoritesViewModel(repository)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(FavoritesUiState.Error, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `Errorのあと再試行して読み取りに成功するとSuccessになる`() = runTest {
+        val repos = listOf(sampleRepo())
+        val repository = FakeFavoriteRepository(repos).also { it.failReads = true }
+        val viewModel = FavoritesViewModel(repository)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(FavoritesUiState.Error, viewModel.uiState.value)
+
+        repository.failReads = false
+        viewModel.retry()
+        advanceUntilIdle()
+
+        assertEquals(FavoritesUiState.Success(repos), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `お気に入りを削除すると一覧から消えEmptyになる`() = runTest {
+        val repo = sampleRepo()
+        val repository = FakeFavoriteRepository(listOf(repo))
+        val viewModel = FavoritesViewModel(repository)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+
+        viewModel.removeFavorite(repo.id)
+        advanceUntilIdle()
+
+        assertEquals(FavoritesUiState.Empty, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `お気に入りの削除に失敗すると保存失敗イベントが流れる`() = runTest {
+        val repo = sampleRepo()
+        val repository = FakeFavoriteRepository(listOf(repo)).also { it.failWrites = true }
+        val viewModel = FavoritesViewModel(repository)
+        val events = mutableListOf<Unit>()
+        // Unconfinedで即座に購読を開始させ、失敗イベントを取りこぼさないようにする
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.writeFailed.collect { events.add(it) }
+        }
+
+        viewModel.removeFavorite(repo.id)
+        advanceUntilIdle()
+        job.cancel()
+
+        assertEquals(1, events.size)
+    }
+
+    private fun sampleRepo(name: String = "nowinandroid") = RepoSummary(
+        id = name.hashCode().toLong(),
+        name = name,
+        fullName = "android/$name",
+        description = "",
+        ownerName = "android",
+        ownerAvatarUrl = "https://example.com/avatar.png",
+        starCount = 100,
+        language = "Kotlin",
+    )
+}

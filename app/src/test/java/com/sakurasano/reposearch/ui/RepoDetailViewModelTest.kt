@@ -2,15 +2,22 @@ package com.sakurasano.reposearch.ui
 
 import androidx.lifecycle.SavedStateHandle
 import com.sakurasano.reposearch.MainDispatcherRule
+import com.sakurasano.reposearch.data.FakeFavoriteRepository
 import com.sakurasano.reposearch.data.FakeRepoDetailRepository
 import com.sakurasano.reposearch.data.RepoDetailRepository
+import com.sakurasano.reposearch.data.toSummary
 import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoDetail
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -28,6 +35,7 @@ class RepoDetailViewModelTest {
         val repo = sampleDetail()
         val viewModel = RepoDetailViewModel(
             FakeRepoDetailRepository(DataResult.Success(repo)),
+            FakeFavoriteRepository(),
             savedStateHandle,
         )
 
@@ -38,6 +46,7 @@ class RepoDetailViewModelTest {
     fun `詳細取得が失敗するとErrorになる`() = runTest {
         val viewModel = RepoDetailViewModel(
             FakeRepoDetailRepository(DataResult.Failure(AppError.Network)),
+            FakeFavoriteRepository(),
             savedStateHandle,
         )
 
@@ -48,7 +57,7 @@ class RepoDetailViewModelTest {
     fun `再試行で再度取得しSuccessになる`() = runTest {
         val repo = sampleDetail()
         val repository = FakeRepoDetailRepository(DataResult.Failure(AppError.Network))
-        val viewModel = RepoDetailViewModel(repository, savedStateHandle)
+        val viewModel = RepoDetailViewModel(repository, FakeFavoriteRepository(), savedStateHandle)
 
         // 初回は失敗
         assertEquals(RepoDetailUiState.Error(AppError.Network), viewModel.uiState.value)
@@ -63,7 +72,7 @@ class RepoDetailViewModelTest {
     @Test
     fun `再試行中に前の取得が遅れて返っても新しい結果で上書きされない`() = runTest {
         val repo = GatedFakeDetailRepository()
-        val viewModel = RepoDetailViewModel(repo, savedStateHandle) // initで1回目の取得を開始し中断
+        val viewModel = RepoDetailViewModel(repo, FakeFavoriteRepository(), savedStateHandle)
 
         val oldDetail = sampleDetail("old")
         val newDetail = sampleDetail("new")
@@ -78,7 +87,77 @@ class RepoDetailViewModelTest {
         assertEquals(RepoDetailUiState.Success(newDetail), viewModel.uiState.value)
     }
 
+    @Test
+    fun `既にお気に入りならisFavoriteがtrueになる`() = runTest {
+        val detail = sampleDetail()
+        val viewModel = RepoDetailViewModel(
+            FakeRepoDetailRepository(DataResult.Success(detail)),
+            FakeFavoriteRepository(listOf(detail.toSummary())),
+            savedStateHandle,
+        )
+        backgroundScope.launch { viewModel.isFavorite.collect {} }
+        advanceUntilIdle()
+
+        assertTrue(viewModel.isFavorite.value)
+    }
+
+    @Test
+    fun `未登録のリポジトリをtoggleするとisFavoriteがtrueになる`() = runTest {
+        val detail = sampleDetail()
+        val viewModel = RepoDetailViewModel(
+            FakeRepoDetailRepository(DataResult.Success(detail)),
+            FakeFavoriteRepository(),
+            savedStateHandle,
+        )
+        backgroundScope.launch { viewModel.isFavorite.collect {} }
+        advanceUntilIdle()
+
+        viewModel.toggleFavorite()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.isFavorite.value)
+    }
+
+    @Test
+    fun `登録済みをtoggleするとisFavoriteがfalseになる`() = runTest {
+        val detail = sampleDetail()
+        val viewModel = RepoDetailViewModel(
+            FakeRepoDetailRepository(DataResult.Success(detail)),
+            FakeFavoriteRepository(listOf(detail.toSummary())),
+            savedStateHandle,
+        )
+        backgroundScope.launch { viewModel.isFavorite.collect {} }
+        advanceUntilIdle()
+
+        viewModel.toggleFavorite()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.isFavorite.value)
+    }
+
+    @Test
+    fun `お気に入りの保存に失敗すると保存失敗イベントが流れる`() = runTest {
+        val detail = sampleDetail()
+        val favorites = FakeFavoriteRepository().also { it.failWrites = true }
+        val viewModel = RepoDetailViewModel(
+            FakeRepoDetailRepository(DataResult.Success(detail)),
+            favorites,
+            savedStateHandle,
+        )
+        val events = mutableListOf<Unit>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.writeFailed.collect { events.add(it) }
+        }
+
+        viewModel.toggleFavorite()
+        advanceUntilIdle()
+        job.cancel()
+
+        assertEquals(1, events.size)
+    }
+
     private fun sampleDetail(name: String = "nowinandroid") = RepoDetail(
+        id = name.hashCode().toLong(),
         name = name,
         fullName = "android/$name",
         htmlUrl = "https://github.com/android/$name",

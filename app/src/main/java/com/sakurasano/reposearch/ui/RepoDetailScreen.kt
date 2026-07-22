@@ -28,6 +28,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,11 +54,17 @@ fun RepoDetailScreen(
     viewModel: RepoDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isFavorite by viewModel.isFavorite.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val openError = stringResource(R.string.detail_open_in_browser_error)
+    val writeFailedMessage = stringResource(R.string.favorite_write_failed)
+
+    LaunchedEffect(Unit) {
+        viewModel.writeFailed.collect { snackbarHostState.showSnackbar(writeFailedMessage) }
+    }
 
     val title = when (val state = uiState) {
         is RepoDetailUiState.Success -> state.repo.name
@@ -80,6 +87,11 @@ fun RepoDetailScreen(
                 },
                 actions = {
                     val state = uiState
+                    if (state is RepoDetailUiState.Success) {
+                        IconButton(onClick = { viewModel.toggleFavorite() }) {
+                            FavoriteToggleIcon(isFavorite = isFavorite)
+                        }
+                    }
                     if (state is RepoDetailUiState.Success && state.repo.htmlUrl.isNotBlank()) {
                         IconButton(
                             onClick = {

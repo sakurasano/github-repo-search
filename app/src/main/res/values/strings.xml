@@ -21,6 +21,14 @@
     <string name="cd_license">ライセンス</string>
     <string name="cd_theme">テーマを切り替え</string>
     <string name="cd_open_in_browser">ブラウザで開く</string>
+    <string name="favorites_title">お気に入り</string>
+    <string name="favorites_empty">お気に入りはまだありません</string>
+    <string name="favorites_error">お気に入りを読み込めませんでした</string>
+    <string name="favorites_retry">再試行</string>
+    <string name="favorite_write_failed">お気に入りの更新に失敗しました</string>
+    <string name="cd_favorites">お気に入り一覧</string>
+    <string name="cd_favorite_add">お気に入りに追加</string>
+    <string name="cd_favorite_remove">お気に入りから削除</string>
     <string name="theme_system">システムに従う</string>
     <string name="theme_light">ライト</string>
     <string name="theme_dark">ダーク</string>

@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.sakurasano.reposearch.ui.FavoritesScreen
 import com.sakurasano.reposearch.ui.RepoDetailScreen
 import com.sakurasano.reposearch.ui.RepoSearchScreen
 import com.sakurasano.reposearch.ui.ThemeViewModel
@@ -16,6 +17,9 @@ data object RepoSearchRoute
 
 @Serializable
 data class RepoDetailRoute(val owner: String, val name: String)
+
+@Serializable
+data object FavoritesRoute
 
 @Composable
 fun AppNavHost(
@@ -33,11 +37,20 @@ fun AppNavHost(
                 onRepoClick = { repo ->
                     navController.navigate(RepoDetailRoute(owner = repo.ownerName, name = repo.name))
                 },
+                onOpenFavorites = { navController.navigate(FavoritesRoute) },
                 themeViewModel = themeViewModel,
             )
         }
         composable<RepoDetailRoute> {
             RepoDetailScreen(onBack = { navController.popBackStack() })
+        }
+        composable<FavoritesRoute> {
+            FavoritesScreen(
+                onRepoClick = { repo ->
+                    navController.navigate(RepoDetailRoute(owner = repo.ownerName, name = repo.name))
+                },
+                onBack = { navController.popBackStack() },
+            )
         }
     }
 }

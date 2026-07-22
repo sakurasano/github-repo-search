@@ -71,6 +71,9 @@ class RepoSearchViewModel @Inject constructor(
         }
     }
 
+    // 失敗した検索を取り直す。入力欄のその後の編集に左右されないよう、確定済みの検索キーワードを使う
+    fun retry() = search(_searchedQuery.value)
+
     fun loadMore() {
         val current = _uiState.value
         // 失敗状態からのリトライは許可する

@@ -187,7 +187,7 @@ fun RepoSearchScreen(
                     is RepoSearchUiState.Error -> StatusMessage(
                         icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
                         message = stringResource(uiState.error.messageRes()),
-                        onRetry = { repoSearchViewModel.search(query) },
+                        onRetry = { repoSearchViewModel.retry() },
                         retryLabel = stringResource(R.string.search_retry),
                     )
 

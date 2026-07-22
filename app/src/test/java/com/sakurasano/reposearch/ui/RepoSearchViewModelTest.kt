@@ -81,6 +81,21 @@ class RepoSearchViewModelTest {
     }
 
     @Test
+    fun `エラーの再試行では直前に検索したクエリを取り直す`() = runTest {
+        val repos = listOf(sampleRepo())
+        val repo = SequencedFakeRepository(
+            listOf(DataResult.Failure(AppError.Network), searchSuccess(repos)),
+        )
+        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository(), FakeFavoriteRepository())
+
+        viewModel.search("compose") // 1回目は失敗してError
+        viewModel.retry()
+
+        assertEquals(RepoSearchUiState.Success(repos, LoadMoreState.End), viewModel.uiState.value)
+        assertEquals(listOf("compose", "compose"), repo.requestedQueries)
+    }
+
+    @Test
     fun `連続検索では後の検索が優先され前の検索結果で上書きされない`() = runTest {
         val repo = GatedFakeRepository()
         val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository(), FakeFavoriteRepository())
@@ -483,6 +498,22 @@ private class GatedFakeRepository : RepoSearchRepository {
 
     fun complete(query: String, page: Int, result: DataResult<RepoSearchPage>) {
         gates.getOrPut(query to page) { CompletableDeferred() }.complete(result)
+    }
+}
+
+/**
+ * 呼ばれるたびに結果を順に切り替えるテスト用リポジトリ。
+ * [requestedQueries] で要求されたクエリを検証できる（再試行が同じクエリを取り直すか等）
+ */
+private class SequencedFakeRepository(
+    private val results: List<DataResult<RepoSearchPage>>,
+) : RepoSearchRepository {
+    val requestedQueries = mutableListOf<String>()
+    private var attempt = 0
+
+    override suspend fun searchRepositories(query: String, page: Int): DataResult<RepoSearchPage> {
+        requestedQueries.add(query)
+        return results[attempt++]
     }
 }
 

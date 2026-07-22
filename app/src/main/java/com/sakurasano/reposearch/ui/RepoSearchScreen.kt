@@ -17,8 +17,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -90,9 +90,10 @@ fun RepoSearchScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val suggestions = remember(query, history) { filterHistory(history, query) }
-    // 検索欄をタップするとサジェスト表示に切り替わり一覧がいったん破棄される。
-    // listStateをここで持てば、一覧に戻ったときスクロール位置が先頭に戻らずに済む
-    val listState = rememberLazyListState()
+    val searchedQuery by repoSearchViewModel.searchedQuery.collectAsStateWithLifecycle()
+    // 検索キーワードを識別子にしてスクロール位置を保持する。キーワードが変われば新規検索なので
+    // 位置を作り直して先頭に戻し、同じキーワードのまま(継ぎ足し・サジェスト往復・回転)なら保つ
+    val listState = rememberSaveable(searchedQuery, saver = LazyListState.Saver) { LazyListState() }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val writeFailedMessage = stringResource(R.string.favorite_write_failed)

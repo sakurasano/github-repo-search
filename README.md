@@ -1,5 +1,7 @@
 # GitHubリポジトリ検索アプリ
 
+[![CI](https://github.com/sakurasano/github-repo-search/actions/workflows/ci.yml/badge.svg)](https://github.com/sakurasano/github-repo-search/actions/workflows/ci.yml)
+
 現行のAndroid標準構成（Jetpack Compose / Coroutines / Hilt / MVVM）で実装した、GitHubリポジトリ検索アプリ。
 
 ## デモ
@@ -93,6 +95,17 @@ flowchart TB
   エラー の状態遷移を検証する。
 - 新しい検索が進行中の取得を打ち切ること（競合時に古い結果で新しい結果を上書きしないこと）を、フェイクの応答順を入れ替えて検証する。
 - DTO → ドメイン変換・ページングの繰り上げ・エラーの分類を、それぞれ個別のテストで検証する。
+
+## 開発フロー / CI
+
+GitHub Actionsで、PRとmasterへのpushごとに次を自動実行する（`.github/workflows/ci.yml`）。同一ブランチで新しいpushがあれば古い実行はキャンセルする。
+
+- フォーマットチェック（`spotlessCheck`）
+- ユニットテスト（`testDebugUnitTest`）
+- Android Lint（`lintDebug`）
+
+- コードスタイルはSpotless（ktlint）と`.editorconfig`で統一し、整形の揺れをレビューの対象から外す。
+- 依存はGradle version catalog（`gradle/libs.versions.toml`）で一元管理し、`app/build.gradle.kts`から`libs.xxx`で参照する。
 
 ## ビルドと実行
 

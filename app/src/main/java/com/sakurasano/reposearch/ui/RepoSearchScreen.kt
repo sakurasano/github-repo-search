@@ -90,10 +90,10 @@ fun RepoSearchScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val suggestions = remember(query, history) { filterHistory(history, query) }
-    val searchedQuery by repoSearchViewModel.searchedQuery.collectAsStateWithLifecycle()
-    // 検索キーワードを識別子にしてスクロール位置を保持する。キーワードが変われば新規検索なので
-    // 位置を作り直して先頭に戻し、同じキーワードのまま(継ぎ足し・サジェスト往復・回転)なら保つ
-    val listState = rememberSaveable(searchedQuery, saver = LazyListState.Saver) { LazyListState() }
+    val searchParams by repoSearchViewModel.searchParams.collectAsStateWithLifecycle()
+    // 確定した検索条件(キーワード＋並び順)を識別子にしてスクロール位置を保持する。条件が変われば新規検索なので
+    // 位置を作り直して先頭に戻し、同じ条件のまま(継ぎ足し・サジェスト往復・回転)なら保つ
+    val listState = rememberSaveable(searchParams, saver = LazyListState.Saver) { LazyListState() }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val writeFailedMessage = stringResource(R.string.favorite_write_failed)

@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -60,6 +62,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sakurasano.reposearch.R
 import com.sakurasano.reposearch.model.RepoSummary
+import com.sakurasano.reposearch.model.SearchSort
 import com.sakurasano.reposearch.model.ThemeMode
 
 // 末尾からこの件数手前まで表示されたら次ページの先読みを始める
@@ -171,6 +174,13 @@ fun RepoSearchScreen(
                     onClearAll = { repoSearchViewModel.clearHistory() },
                 )
             } else {
+                // 検索が確定してから並び順を出す。未検索(Idle)では並べ替える対象がない
+                if (uiState !is RepoSearchUiState.Idle) {
+                    SortSelector(
+                        currentSort = searchParams.sort,
+                        onSelect = repoSearchViewModel::selectSort,
+                    )
+                }
                 when (val uiState = uiState) {
                     RepoSearchUiState.Idle -> StatusMessage(
                         icon = Icons.Filled.Search,
@@ -326,6 +336,48 @@ private fun ThemeMode.labelRes(): Int = when (this) {
     ThemeMode.SYSTEM -> R.string.theme_system
     ThemeMode.LIGHT -> R.string.theme_light
     ThemeMode.DARK -> R.string.theme_dark
+}
+
+@Composable
+private fun SortSelector(
+    currentSort: SearchSort,
+    onSelect: (SearchSort) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        TextButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = ImageVector.vectorResource(R.drawable.ic_sort),
+                contentDescription = null,
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(stringResource(currentSort.labelRes()))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            SearchSort.entries.forEach { sort ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(sort.labelRes())) },
+                    onClick = {
+                        onSelect(sort)
+                        expanded = false
+                    },
+                    leadingIcon = { RadioButton(selected = sort == currentSort, onClick = null) },
+                )
+            }
+        }
+    }
+}
+
+@StringRes
+private fun SearchSort.labelRes(): Int = when (this) {
+    SearchSort.BEST_MATCH -> R.string.sort_best_match
+    SearchSort.STARS -> R.string.sort_stars
+    SearchSort.UPDATED -> R.string.sort_updated
 }
 
 @Composable

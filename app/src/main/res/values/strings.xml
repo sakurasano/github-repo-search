@@ -32,6 +32,7 @@
     <string name="theme_system">システムに従う</string>
     <string name="theme_light">ライト</string>
     <string name="theme_dark">ダーク</string>
+    <string name="search_result_count">%1$s件</string>
     <string name="sort_best_match">ベストマッチ</string>
     <string name="sort_stars">スター数</string>
     <string name="sort_updated">更新日</string>

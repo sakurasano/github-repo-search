@@ -105,7 +105,7 @@ class RepoSearchViewModel @Inject constructor(
                     if (page.items.isEmpty()) {
                         RepoSearchUiState.Empty
                     } else {
-                        RepoSearchUiState.Success(page.items, LoadMoreState.from(page.hasMore))
+                        RepoSearchUiState.Success(page.items, LoadMoreState.from(page.hasMore), page.totalCount)
                     }
                 }
 
@@ -134,7 +134,7 @@ class RepoSearchViewModel @Inject constructor(
                     val page = result.data
                     // ページ間で重複するIDを取り除く（LazyColumnのkey重複によるクラッシュを防ぐ）
                     val merged = (current.repos + page.items).distinctBy { it.id }
-                    RepoSearchUiState.Success(merged, LoadMoreState.from(page.hasMore))
+                    RepoSearchUiState.Success(merged, LoadMoreState.from(page.hasMore), current.totalCount)
                 }
 
                 is DataResult.Failure -> current.copy(loadMoreState = LoadMoreState.Error(result.error))

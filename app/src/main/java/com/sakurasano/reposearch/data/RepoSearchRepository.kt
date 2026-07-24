@@ -24,6 +24,7 @@ class RepoSearchRepositoryImpl @Inject constructor(
             RepoSearchPage(
                 items = response.items.map { it.toDomain() },
                 hasMore = hasMorePages(page, GitHubApi.DEFAULT_PER_PAGE, response.totalCount),
+                totalCount = response.totalCount,
             )
         }
 }

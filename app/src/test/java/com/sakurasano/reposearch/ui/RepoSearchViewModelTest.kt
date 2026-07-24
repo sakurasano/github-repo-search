@@ -46,6 +46,41 @@ class RepoSearchViewModelTest {
     }
 
     @Test
+    fun `検索が成功すると一致総数を公開する`() = runTest {
+        val repos = listOf(sampleRepo())
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(searchSuccess(repos, totalCount = 4321)),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("compose")
+
+        assertEquals(4321, (viewModel.uiState.value as RepoSearchUiState.Success).totalCount)
+    }
+
+    @Test
+    fun `追加読み込みしても一致総数を保つ`() = runTest {
+        val viewModel = RepoSearchViewModel(
+            PagedFakeRepository(
+                mapOf(
+                    1 to searchSuccess(listOf(sampleRepo("a")), hasMore = true, totalCount = 4321),
+                    2 to searchSuccess(listOf(sampleRepo("b")), hasMore = false, totalCount = 4321),
+                ),
+            ),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("q")
+        viewModel.loadMore()
+
+        assertEquals(4321, (viewModel.uiState.value as RepoSearchUiState.Success).totalCount)
+    }
+
+    @Test
     fun `検索結果が0件だとEmptyになる`() = runTest {
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(searchSuccess()),
@@ -658,8 +693,11 @@ class RepoSearchViewModelTest {
         language = "Kotlin",
     )
 
-    private fun searchSuccess(repos: List<RepoSummary> = emptyList(), hasMore: Boolean = false) =
-        DataResult.Success(RepoSearchPage(repos, hasMore))
+    private fun searchSuccess(
+        repos: List<RepoSummary> = emptyList(),
+        hasMore: Boolean = false,
+        totalCount: Int = 0,
+    ) = DataResult.Success(RepoSearchPage(repos, hasMore, totalCount))
 }
 
 /**

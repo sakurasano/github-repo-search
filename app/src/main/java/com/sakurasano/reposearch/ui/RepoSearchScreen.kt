@@ -179,6 +179,7 @@ fun RepoSearchScreen(
                     SortSelector(
                         currentSort = searchParams.sort,
                         onSelect = repoSearchViewModel::selectSort,
+                        resultCount = (uiState as? RepoSearchUiState.Success)?.totalCount,
                     )
                 }
                 when (val uiState = uiState) {
@@ -343,31 +344,42 @@ private fun SortSelector(
     currentSort: SearchSort,
     onSelect: (SearchSort) -> Unit,
     modifier: Modifier = Modifier,
+    resultCount: Int? = null,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
 
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.CenterEnd,
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        TextButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.ic_sort),
-                contentDescription = null,
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(stringResource(currentSort.labelRes()))
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            SearchSort.entries.forEach { sort ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(sort.labelRes())) },
-                    onClick = {
-                        onSelect(sort)
-                        expanded = false
-                    },
-                    leadingIcon = { RadioButton(selected = sort == currentSort, onClick = null) },
+        Text(
+            text = resultCount?.let { stringResource(R.string.search_result_count, "%,d".format(it)) }.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Box {
+            TextButton(onClick = { expanded = true }) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_sort),
+                    contentDescription = null,
                 )
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(currentSort.labelRes()))
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                SearchSort.entries.forEach { sort ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(sort.labelRes())) },
+                        onClick = {
+                            onSelect(sort)
+                            expanded = false
+                        },
+                        leadingIcon = { RadioButton(selected = sort == currentSort, onClick = null) },
+                    )
+                }
             }
         }
     }

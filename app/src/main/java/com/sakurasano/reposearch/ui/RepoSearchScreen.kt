@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -60,6 +62,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sakurasano.reposearch.R
 import com.sakurasano.reposearch.model.RepoSummary
+import com.sakurasano.reposearch.model.SearchSort
 import com.sakurasano.reposearch.model.ThemeMode
 
 // 末尾からこの件数手前まで表示されたら次ページの先読みを始める
@@ -90,10 +93,10 @@ fun RepoSearchScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     val suggestions = remember(query, history) { filterHistory(history, query) }
-    val searchedQuery by repoSearchViewModel.searchedQuery.collectAsStateWithLifecycle()
-    // 検索キーワードを識別子にしてスクロール位置を保持する。キーワードが変われば新規検索なので
-    // 位置を作り直して先頭に戻し、同じキーワードのまま(継ぎ足し・サジェスト往復・回転)なら保つ
-    val listState = rememberSaveable(searchedQuery, saver = LazyListState.Saver) { LazyListState() }
+    val searchParams by repoSearchViewModel.searchParams.collectAsStateWithLifecycle()
+    // 確定した検索条件(キーワード＋並び順)を識別子にしてスクロール位置を保持する。条件が変われば新規検索なので
+    // 位置を作り直して先頭に戻し、同じ条件のまま(継ぎ足し・サジェスト往復・回転)なら保つ
+    val listState = rememberSaveable(searchParams, saver = LazyListState.Saver) { LazyListState() }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val writeFailedMessage = stringResource(R.string.favorite_write_failed)
@@ -171,6 +174,14 @@ fun RepoSearchScreen(
                     onClearAll = { repoSearchViewModel.clearHistory() },
                 )
             } else {
+                // 検索が確定してから並び順を出す。未検索(Idle)では並べ替える対象がない
+                if (uiState !is RepoSearchUiState.Idle) {
+                    SortSelector(
+                        currentSort = searchParams.sort,
+                        onSelect = repoSearchViewModel::selectSort,
+                        resultCount = (uiState as? RepoSearchUiState.Success)?.totalCount,
+                    )
+                }
                 when (val uiState = uiState) {
                     RepoSearchUiState.Idle -> StatusMessage(
                         icon = Icons.Filled.Search,
@@ -326,6 +337,59 @@ private fun ThemeMode.labelRes(): Int = when (this) {
     ThemeMode.SYSTEM -> R.string.theme_system
     ThemeMode.LIGHT -> R.string.theme_light
     ThemeMode.DARK -> R.string.theme_dark
+}
+
+@Composable
+private fun SortSelector(
+    currentSort: SearchSort,
+    onSelect: (SearchSort) -> Unit,
+    modifier: Modifier = Modifier,
+    resultCount: Int? = null,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = resultCount?.let { stringResource(R.string.search_result_count, "%,d".format(it)) }.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Box {
+            TextButton(onClick = { expanded = true }) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_sort),
+                    contentDescription = null,
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(currentSort.labelRes()))
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                SearchSort.entries.forEach { sort ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(sort.labelRes())) },
+                        onClick = {
+                            onSelect(sort)
+                            expanded = false
+                        },
+                        leadingIcon = { RadioButton(selected = sort == currentSort, onClick = null) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@StringRes
+private fun SearchSort.labelRes(): Int = when (this) {
+    SearchSort.BEST_MATCH -> R.string.sort_best_match
+    SearchSort.STARS -> R.string.sort_stars
+    SearchSort.UPDATED -> R.string.sort_updated
 }
 
 @Composable

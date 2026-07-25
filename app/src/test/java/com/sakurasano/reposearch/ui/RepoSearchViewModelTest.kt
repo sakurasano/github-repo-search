@@ -6,6 +6,8 @@ import com.sakurasano.reposearch.data.FakeRepoSearchRepository
 import com.sakurasano.reposearch.data.FakeSearchHistoryRepository
 import com.sakurasano.reposearch.data.FakeSearchSortRepository
 import com.sakurasano.reposearch.data.RepoSearchRepository
+import com.sakurasano.reposearch.data.SearchRequest
+import com.sakurasano.reposearch.data.SearchSortRepository
 import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoSearchPage
@@ -13,7 +15,9 @@ import com.sakurasano.reposearch.model.RepoSummary
 import com.sakurasano.reposearch.model.SearchSort
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -682,6 +686,67 @@ class RepoSearchViewModelTest {
         assertEquals(SearchSort.UPDATED, viewModel.searchParams.value.sort)
     }
 
+    @Test
+    fun `追加読み込み後に並び順を変えると1ページ目から取り直し次の追加読み込みは2ページ目を取る`() = runTest {
+        val repo = PagedFakeRepository(
+            mapOf(
+                1 to searchSuccess(listOf(sampleRepo("a")), hasMore = true),
+                2 to searchSuccess(listOf(sampleRepo("b")), hasMore = true),
+            ),
+        )
+        val viewModel = RepoSearchViewModel(
+            repo,
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("q") // 1ページ目
+        viewModel.loadMore() // 2ページ目まで進める（currentPage=2）
+        viewModel.selectSort(SearchSort.STARS) // 1ページ目から取り直す
+        viewModel.loadMore() // 取り直し後の追加読み込み
+
+        // 取り直しでページ位置が1に戻り、次の追加読み込みは3ページ目ではなく2ページ目を取る
+        assertEquals(listOf(1, 2, 1, 2), repo.requests.map { it.page })
+        assertEquals(SearchSort.STARS, repo.requests.last().sort)
+    }
+
+    @Test
+    fun `初期化前にユーザーが検索すると保存値で並び順が上書きされない`() = runTest {
+        val sortRepo = GatedFakeSearchSortRepository(SearchSort.UPDATED)
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()))),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            sortRepo,
+        )
+
+        viewModel.search("compose") // 保存値が読める前に既定の並び順で検索
+        sortRepo.emitSaved() // 遅れて保存値が届く
+        advanceUntilIdle()
+
+        assertEquals(SearchSort.BEST_MATCH, viewModel.searchParams.value.sort)
+    }
+
+    @Test
+    fun `0件の状態で並び順を変えると再検索される`() = runTest {
+        val repo = FakeRepoSearchRepository(searchSuccess())
+        val viewModel = RepoSearchViewModel(
+            repo,
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("no-such-repository") // Empty
+        val countAfterSearch = repo.requests.size
+        viewModel.selectSort(SearchSort.STARS)
+
+        assertEquals(countAfterSearch + 1, repo.requests.size)
+        assertEquals(SearchSort.STARS, repo.requests.last().sort)
+        assertEquals(RepoSearchUiState.Empty, viewModel.uiState.value)
+    }
+
     private fun sampleRepo(name: String = "nowinandroid") = RepoSummary(
         id = name.hashCode().toLong(),
         name = name,
@@ -737,8 +802,12 @@ private class SequencedFakeRepository(
 private class PagedFakeRepository(
     private val pages: Map<Int, DataResult<RepoSearchPage>>,
 ) : RepoSearchRepository {
-    override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> =
-        pages.getValue(page)
+    val requests = mutableListOf<SearchRequest>()
+
+    override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> {
+        requests.add(SearchRequest(query, page, sort))
+        return pages.getValue(page)
+    }
 }
 
 /**
@@ -755,5 +824,23 @@ private class RetryFakeRepository(
     override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> {
         requestedPages.add(page)
         return if (page == 1) page1 else page2Attempts[attempt++]
+    }
+}
+
+/**
+ * 保存値の読み出しタイミングを手動で制御できるテスト用リポジトリ。
+ * [emitSaved] を呼ぶまで [sortOption] は保存値を流さない
+ */
+private class GatedFakeSearchSortRepository(private val saved: SearchSort) : SearchSortRepository {
+    private val gate = CompletableDeferred<Unit>()
+    override val sortOption: Flow<SearchSort> = flow {
+        gate.await()
+        emit(saved)
+    }
+
+    override suspend fun setSortOption(sort: SearchSort) {}
+
+    fun emitSaved() {
+        gate.complete(Unit)
     }
 }

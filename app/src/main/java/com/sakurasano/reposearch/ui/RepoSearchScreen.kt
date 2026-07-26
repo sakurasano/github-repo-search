@@ -94,8 +94,7 @@ fun RepoSearchScreen(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val suggestions = remember(query, history) { filterHistory(history, query) }
     val searchParams by repoSearchViewModel.searchParams.collectAsStateWithLifecycle()
-    // 確定した検索条件(キーワード＋並び順)を識別子にしてスクロール位置を保持する。条件が変われば新規検索なので
-    // 位置を作り直して先頭に戻し、同じ条件のまま(継ぎ足し・サジェスト往復・回転)なら保つ
+    // 確定した検索条件を識別子にしてスクロール位置を保持する
     val listState = rememberSaveable(searchParams, saver = LazyListState.Saver) { LazyListState() }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -332,13 +331,6 @@ private fun ThemeMenu(viewModel: ThemeViewModel) {
     }
 }
 
-@StringRes
-private fun ThemeMode.labelRes(): Int = when (this) {
-    ThemeMode.SYSTEM -> R.string.theme_system
-    ThemeMode.LIGHT -> R.string.theme_light
-    ThemeMode.DARK -> R.string.theme_dark
-}
-
 @Composable
 private fun SortSelector(
     currentSort: SearchSort,
@@ -356,7 +348,9 @@ private fun SortSelector(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
-            text = resultCount?.let { stringResource(R.string.search_result_count, "%,d".format(it)) }.orEmpty(),
+            text = resultCount?.let {
+                stringResource(R.string.search_result_count, "%,d".format(it))
+            }.orEmpty(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -383,13 +377,6 @@ private fun SortSelector(
             }
         }
     }
-}
-
-@StringRes
-private fun SearchSort.labelRes(): Int = when (this) {
-    SearchSort.BEST_MATCH -> R.string.sort_best_match
-    SearchSort.STARS -> R.string.sort_stars
-    SearchSort.UPDATED -> R.string.sort_updated
 }
 
 @Composable
@@ -422,4 +409,18 @@ private fun LoadMoreFooter(
             LoadMoreState.Idle, LoadMoreState.End -> Unit
         }
     }
+}
+
+@StringRes
+private fun ThemeMode.labelRes(): Int = when (this) {
+    ThemeMode.SYSTEM -> R.string.theme_system
+    ThemeMode.LIGHT -> R.string.theme_light
+    ThemeMode.DARK -> R.string.theme_dark
+}
+
+@StringRes
+private fun SearchSort.labelRes(): Int = when (this) {
+    SearchSort.BEST_MATCH -> R.string.sort_best_match
+    SearchSort.STARS -> R.string.sort_stars
+    SearchSort.UPDATED -> R.string.sort_updated
 }

@@ -40,11 +40,10 @@ class RepoSearchViewModel @Inject constructor(
     private val writeNotifier = FavoriteWriteNotifier()
     val writeFailed = writeNotifier.writeFailed
 
-    // 確定した検索条件（キーワード＋並び順）。一覧のスクロール位置はこれを識別子として保持/リセットされる
     private val _searchParams = MutableStateFlow(SearchParams(query = "", sort = SearchSort.BEST_MATCH))
     val searchParams: StateFlow<SearchParams> = _searchParams.asStateFlow()
 
-    // ユーザーが検索/並び順選択を行ったか。永続値の初期反映でユーザー操作を上書きしないための番兵
+    // ユーザーが検索/並び順選択を行ったか
     private var sortInitialized = false
 
     private var searchJob: Job? = null
@@ -65,14 +64,13 @@ class RepoSearchViewModel @Inject constructor(
     fun search(query: String) {
         if (query.isBlank()) return
         sortInitialized = true
-        // 履歴の記録はsearchJobと別に起動する。連続検索でsearchJobをcancelしても記録が巻き添えにならないようにするため
+        // 履歴の記録はsearchJobと別に起動する（連続検索でsearchJobをcancelしても記録が巻き添えにならないようにするため）
         viewModelScope.launch { searchHistoryRepository.record(query) }
         runSearch(query, _searchParams.value.sort)
     }
 
-    // 失敗した検索を取り直す。入力欄のその後の編集に左右されないよう、確定済みの検索条件を使う
     fun retry() {
-        val params = _searchParams.value
+        val params = _searchParams.value // 入力欄のその後の編集に左右されないよう、確定済みの検索条件を使う
         if (params.query.isBlank()) return
         runSearch(params.query, params.sort)
     }
@@ -89,7 +87,6 @@ class RepoSearchViewModel @Inject constructor(
         }
     }
 
-    // 1ページ目から新規に取り直す。検索・再試行・並び順変更の共通経路
     private fun runSearch(query: String, sort: SearchSort) {
         // 進行中の検索と追加読み込みをともに打ち切り、遅い前回結果が新しい結果を上書きするのを防ぐ
         searchJob?.cancel()

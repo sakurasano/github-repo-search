@@ -20,7 +20,7 @@ class RepoSearchRepositoryImpl @Inject constructor(
 
     override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> =
         apiCall {
-            val response = api.searchRepositories(query, page, sort = sort.toApiQuery())
+            val response = api.searchRepositories(query, page, sort.toApiQuery())
             RepoSearchPage(
                 items = response.items.map { it.toDomain() },
                 hasMore = hasMorePages(page, GitHubApi.DEFAULT_PER_PAGE, response.totalCount),
@@ -29,7 +29,6 @@ class RepoSearchRepositoryImpl @Inject constructor(
         }
 }
 
-// GitHub検索APIのsortクエリ値。ベストマッチは未指定（null）で表す
 private fun SearchSort.toApiQuery(): String? = when (this) {
     SearchSort.BEST_MATCH -> null
     SearchSort.STARS -> "stars"

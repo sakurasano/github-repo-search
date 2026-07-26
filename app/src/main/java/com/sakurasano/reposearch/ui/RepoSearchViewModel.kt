@@ -97,7 +97,7 @@ class RepoSearchViewModel @Inject constructor(
         _searchParams.value = SearchParams(query, sort)
         searchJob = viewModelScope.launch {
             _uiState.value = RepoSearchUiState.Loading
-            val result = repoSearchRepository.searchRepositories(query, page = 1, sort = sort)
+            val result = repoSearchRepository.searchRepositories(query, sort = sort, page = 1)
             _uiState.value = when (result) {
                 is DataResult.Success -> {
                     currentPage = 1
@@ -125,8 +125,8 @@ class RepoSearchViewModel @Inject constructor(
             _uiState.value = current.copy(loadMoreState = LoadMoreState.Loading)
             val result = repoSearchRepository.searchRepositories(
                 params.query,
-                page = currentPage + 1,
                 sort = params.sort,
+                page = currentPage + 1,
             )
             _uiState.value = when (result) {
                 is DataResult.Success -> {

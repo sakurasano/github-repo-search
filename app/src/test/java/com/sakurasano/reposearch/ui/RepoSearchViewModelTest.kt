@@ -772,7 +772,7 @@ class RepoSearchViewModelTest {
 private class GatedFakeRepository : RepoSearchRepository {
     private val gates = mutableMapOf<Pair<String, Int>, CompletableDeferred<DataResult<RepoSearchPage>>>()
 
-    override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> =
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> =
         gates.getOrPut(query to page) { CompletableDeferred() }.await()
 
     fun complete(query: String, page: Int, result: DataResult<RepoSearchPage>) {
@@ -790,7 +790,7 @@ private class SequencedFakeRepository(
     val requestedQueries = mutableListOf<String>()
     private var attempt = 0
 
-    override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> {
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> {
         requestedQueries.add(query)
         return results[attempt++]
     }
@@ -804,8 +804,8 @@ private class PagedFakeRepository(
 ) : RepoSearchRepository {
     val requests = mutableListOf<SearchRequest>()
 
-    override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> {
-        requests.add(SearchRequest(query, page, sort))
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> {
+        requests.add(SearchRequest(query, sort, page))
         return pages.getValue(page)
     }
 }
@@ -821,7 +821,7 @@ private class RetryFakeRepository(
     val requestedPages = mutableListOf<Int>()
     private var attempt = 0
 
-    override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> {
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> {
         requestedPages.add(page)
         return if (page == 1) page1 else page2Attempts[attempt++]
     }

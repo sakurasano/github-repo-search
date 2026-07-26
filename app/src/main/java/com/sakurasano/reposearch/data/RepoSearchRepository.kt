@@ -8,17 +8,17 @@ import javax.inject.Inject
 interface RepoSearchRepository {
     /**
      * @param query 検索キーワード（GitHub検索構文が使える。例: "compose language:kotlin"）
-     * @param page 取得するページ番号（1始まり）
      * @param sort 並び順
+     * @param page 取得するページ番号（1始まり）
      */
-    suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage>
+    suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage>
 }
 
 class RepoSearchRepositoryImpl @Inject constructor(
     private val api: GitHubApi,
 ) : RepoSearchRepository {
 
-    override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> =
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> =
         apiCall {
             val response = api.searchRepositories(query, page, sort = sort.toApiQuery())
             RepoSearchPage(

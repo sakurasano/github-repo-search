@@ -9,10 +9,10 @@ class FakeRepoSearchRepository(
 ) : RepoSearchRepository {
     val requests = mutableListOf<SearchRequest>()
 
-    override suspend fun searchRepositories(query: String, page: Int, sort: SearchSort): DataResult<RepoSearchPage> {
-        requests.add(SearchRequest(query, page, sort))
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> {
+        requests.add(SearchRequest(query, sort, page))
         return result
     }
 }
 
-data class SearchRequest(val query: String, val page: Int, val sort: SearchSort)
+data class SearchRequest(val query: String, val sort: SearchSort, val page: Int)

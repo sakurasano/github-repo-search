@@ -24,7 +24,7 @@ GitHubリポジトリ検索Androidアプリ。Kotlin / Jetpack Compose / Hilt / 
 
 ## アーキテクチャ
 
-Googleのアプリアーキテクチャガイドに沿った3層構成。パッケージは `com.sakurasano.reposearch` 配下で、各層の責務は次の通り（具体的なクラス構成はディレクトリを参照）
+GoogleのアプリアーキテクチャガイドをもとにUI / Dataの2層へ分離し、両層が参照するドメインモデルを切り出した構成。パッケージは `com.sakurasano.reposearch` 配下で、各層の責務は次の通り（具体的なクラス構成はディレクトリを参照）
 
 - `ui/` — Compose画面とViewModel。状態は `StateFlow` として公開し、画面はそれを受け取って表示するだけ（単方向データフロー）。UI層のコードは、Androidや通信ライブラリの型に直接依存させない。
 - `data/` — Repository（interface + 実装）と、外部データからドメイン型への変換。外部I/Oはこの層の中で完結させる。

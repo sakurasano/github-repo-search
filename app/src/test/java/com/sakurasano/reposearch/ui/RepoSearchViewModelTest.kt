@@ -4,13 +4,20 @@ import com.sakurasano.reposearch.MainDispatcherRule
 import com.sakurasano.reposearch.data.FakeFavoriteRepository
 import com.sakurasano.reposearch.data.FakeRepoSearchRepository
 import com.sakurasano.reposearch.data.FakeSearchHistoryRepository
+import com.sakurasano.reposearch.data.FakeSearchSortRepository
 import com.sakurasano.reposearch.data.RepoSearchRepository
+import com.sakurasano.reposearch.data.SearchRequest
+import com.sakurasano.reposearch.data.SearchSortRepository
 import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoSearchPage
 import com.sakurasano.reposearch.model.RepoSummary
+import com.sakurasano.reposearch.model.SearchSort
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -34,6 +41,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess(repos)),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("compose")
@@ -42,11 +50,47 @@ class RepoSearchViewModelTest {
     }
 
     @Test
+    fun `検索が成功すると一致総数を公開する`() = runTest {
+        val repos = listOf(sampleRepo())
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(searchSuccess(repos, totalCount = 4321)),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("compose")
+
+        assertEquals(4321, (viewModel.uiState.value as RepoSearchUiState.Success).totalCount)
+    }
+
+    @Test
+    fun `追加読み込みしても一致総数を保つ`() = runTest {
+        val viewModel = RepoSearchViewModel(
+            PagedFakeRepository(
+                mapOf(
+                    1 to searchSuccess(listOf(sampleRepo("a")), hasMore = true, totalCount = 4321),
+                    2 to searchSuccess(listOf(sampleRepo("b")), hasMore = false, totalCount = 4321),
+                ),
+            ),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("q")
+        viewModel.loadMore()
+
+        assertEquals(4321, (viewModel.uiState.value as RepoSearchUiState.Success).totalCount)
+    }
+
+    @Test
     fun `検索結果が0件だとEmptyになる`() = runTest {
         val viewModel = RepoSearchViewModel(
             FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("no-such-repository")
@@ -60,6 +104,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(DataResult.Failure(AppError.Network)),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("compose")
@@ -73,6 +118,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("   ")
@@ -86,7 +132,13 @@ class RepoSearchViewModelTest {
         val repo = SequencedFakeRepository(
             listOf(DataResult.Failure(AppError.Network), searchSuccess(repos)),
         )
-        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository(), FakeFavoriteRepository())
+        val viewModel =
+            RepoSearchViewModel(
+                repo,
+                FakeSearchHistoryRepository(),
+                FakeFavoriteRepository(),
+                FakeSearchSortRepository(),
+            )
 
         viewModel.search("compose") // 1回目は失敗してError
         viewModel.retry()
@@ -98,7 +150,13 @@ class RepoSearchViewModelTest {
     @Test
     fun `連続検索では後の検索が優先され前の検索結果で上書きされない`() = runTest {
         val repo = GatedFakeRepository()
-        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository(), FakeFavoriteRepository())
+        val viewModel =
+            RepoSearchViewModel(
+                repo,
+                FakeSearchHistoryRepository(),
+                FakeFavoriteRepository(),
+                FakeSearchSortRepository(),
+            )
 
         val oldRepos = listOf(sampleRepo("old"))
         val newRepos = listOf(sampleRepo("new"))
@@ -121,6 +179,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()))),
             history,
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("compose")
@@ -136,6 +195,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             history,
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("no-such-repository")
@@ -151,6 +211,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(DataResult.Failure(AppError.Network)),
             history,
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("compose")
@@ -166,6 +227,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             history,
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.removeHistory("compose")
@@ -182,6 +244,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             history,
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.clearHistory()
@@ -194,7 +257,7 @@ class RepoSearchViewModelTest {
     fun `連続検索で前の検索が中断されても両方のクエリが記録される`() = runTest {
         val history = FakeSearchHistoryRepository()
         val repo = GatedFakeRepository()
-        val viewModel = RepoSearchViewModel(repo, history, FakeFavoriteRepository())
+        val viewModel = RepoSearchViewModel(repo, history, FakeFavoriteRepository(), FakeSearchSortRepository())
 
         viewModel.search("kotlin") // 応答待ちで中断（searchJob進行中）
         viewModel.search("compose") // searchJobをキャンセルして再開
@@ -212,6 +275,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(listOf(repo)),
+            FakeSearchSortRepository(),
         )
         backgroundScope.launch { viewModel.favoriteIds.collect {} }
         advanceUntilIdle()
@@ -226,6 +290,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
         backgroundScope.launch { viewModel.favoriteIds.collect {} }
         advanceUntilIdle()
@@ -243,6 +308,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(listOf(repo)),
+            FakeSearchSortRepository(),
         )
         backgroundScope.launch { viewModel.favoriteIds.collect {} }
         advanceUntilIdle()
@@ -261,6 +327,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             favorites,
+            FakeSearchSortRepository(),
         )
         val events = mutableListOf<Unit>()
         val job = launch(UnconfinedTestDispatcher(testScheduler)) {
@@ -280,6 +347,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()), hasMore = true)),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("compose")
@@ -300,6 +368,7 @@ class RepoSearchViewModelTest {
             ),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("q")
@@ -320,6 +389,7 @@ class RepoSearchViewModelTest {
             ),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("q")
@@ -339,7 +409,13 @@ class RepoSearchViewModelTest {
             page1 = searchSuccess(page1, hasMore = true),
             page2Attempts = listOf(DataResult.Failure(AppError.Network), searchSuccess(page2, hasMore = false)),
         )
-        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository(), FakeFavoriteRepository())
+        val viewModel =
+            RepoSearchViewModel(
+                repo,
+                FakeSearchHistoryRepository(),
+                FakeFavoriteRepository(),
+                FakeSearchSortRepository(),
+            )
 
         viewModel.search("q")
         viewModel.loadMore() // 2ページ目に失敗
@@ -353,7 +429,13 @@ class RepoSearchViewModelTest {
     @Test
     fun `追加読み込み中に再度実行しても二重に読み込まない`() = runTest {
         val repo = GatedFakeRepository()
-        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository(), FakeFavoriteRepository())
+        val viewModel =
+            RepoSearchViewModel(
+                repo,
+                FakeSearchHistoryRepository(),
+                FakeFavoriteRepository(),
+                FakeSearchSortRepository(),
+            )
         val page1 = listOf(sampleRepo("a"))
         val page2 = listOf(sampleRepo("b"))
 
@@ -370,7 +452,13 @@ class RepoSearchViewModelTest {
     @Test
     fun `追加読み込み中に新しい検索をすると古い追加結果は反映されない`() = runTest {
         val repo = GatedFakeRepository()
-        val viewModel = RepoSearchViewModel(repo, FakeSearchHistoryRepository(), FakeFavoriteRepository())
+        val viewModel =
+            RepoSearchViewModel(
+                repo,
+                FakeSearchHistoryRepository(),
+                FakeFavoriteRepository(),
+                FakeSearchSortRepository(),
+            )
         val oldPage1 = listOf(sampleRepo("old1"))
         val oldPage2 = listOf(sampleRepo("old2"))
         val newPage1 = listOf(sampleRepo("new1"))
@@ -392,6 +480,7 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()), hasMore = false)),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("q")
@@ -415,6 +504,7 @@ class RepoSearchViewModelTest {
             ),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("q")
@@ -430,11 +520,12 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()))),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("compose")
 
-        assertEquals("compose", viewModel.searchedQuery.value)
+        assertEquals("compose", viewModel.searchParams.value.query)
     }
 
     @Test
@@ -450,12 +541,13 @@ class RepoSearchViewModelTest {
             ),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("compose")
         viewModel.loadMore()
 
-        assertEquals("compose", viewModel.searchedQuery.value)
+        assertEquals("compose", viewModel.searchParams.value.query)
     }
 
     @Test
@@ -464,11 +556,195 @@ class RepoSearchViewModelTest {
             FakeRepoSearchRepository(searchSuccess()),
             FakeSearchHistoryRepository(),
             FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
         )
 
         viewModel.search("   ")
 
-        assertEquals("", viewModel.searchedQuery.value)
+        assertEquals("", viewModel.searchParams.value.query)
+    }
+
+    @Test
+    fun `並び順を変えると1ページ目から取り直してSuccessになる`() = runTest {
+        val repos = listOf(sampleRepo("a"))
+        val repo = FakeRepoSearchRepository(searchSuccess(repos, hasMore = true))
+        val viewModel = RepoSearchViewModel(
+            repo,
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("compose")
+        viewModel.selectSort(SearchSort.STARS)
+
+        assertEquals(SearchSort.STARS, viewModel.searchParams.value.sort)
+        assertEquals(RepoSearchUiState.Success(repos, LoadMoreState.Idle), viewModel.uiState.value)
+        assertEquals(1, repo.requests.last().page)
+        assertEquals(SearchSort.STARS, repo.requests.last().sort)
+    }
+
+    @Test
+    fun `同じ並び順を選び直しても検索し直さない`() = runTest {
+        val repo = FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo())))
+        val viewModel = RepoSearchViewModel(
+            repo,
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("compose")
+        val countAfterSearch = repo.requests.size
+        viewModel.selectSort(SearchSort.BEST_MATCH)
+
+        assertEquals(countAfterSearch, repo.requests.size)
+    }
+
+    @Test
+    fun `並び順の変更中は進行中の追加読み込みが打ち切られ古い結果で上書きされない`() = runTest {
+        val repo = GatedFakeRepository()
+        val viewModel =
+            RepoSearchViewModel(
+                repo,
+                FakeSearchHistoryRepository(),
+                FakeFavoriteRepository(),
+                FakeSearchSortRepository(),
+            )
+        val page1 = listOf(sampleRepo("a"))
+        val oldPage2 = listOf(sampleRepo("old2"))
+
+        viewModel.search("q")
+        repo.complete("q", 1, searchSuccess(page1, hasMore = true))
+        viewModel.loadMore() // (q, 2) を要求して応答待ち
+
+        viewModel.selectSort(SearchSort.STARS) // 進行中の追加読み込みを打ち切り1ページ目から取り直す
+        repo.complete("q", 2, searchSuccess(oldPage2, hasMore = true)) // 遅れて返る古い追加結果
+
+        assertEquals(SearchSort.STARS, viewModel.searchParams.value.sort)
+        assertEquals(page1, (viewModel.uiState.value as RepoSearchUiState.Success).repos)
+    }
+
+    @Test
+    fun `検索は選択中の並び順でリポジトリを呼ぶ`() = runTest {
+        val repo = FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo())))
+        val viewModel = RepoSearchViewModel(
+            repo,
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(SearchSort.UPDATED),
+        )
+
+        viewModel.search("compose")
+
+        assertEquals(SearchSort.UPDATED, repo.requests.last().sort)
+    }
+
+    @Test
+    fun `追加読み込みは選択中の並び順で次ページを取る`() = runTest {
+        val repo = FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()), hasMore = true))
+        val viewModel = RepoSearchViewModel(
+            repo,
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(SearchSort.STARS),
+        )
+
+        viewModel.search("compose")
+        viewModel.loadMore()
+
+        assertEquals(2, repo.requests.last().page)
+        assertEquals(SearchSort.STARS, repo.requests.last().sort)
+    }
+
+    @Test
+    fun `並び順を選ぶと永続化される`() = runTest {
+        val sortRepo = FakeSearchSortRepository()
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()))),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            sortRepo,
+        )
+
+        viewModel.search("compose")
+        viewModel.selectSort(SearchSort.STARS)
+        advanceUntilIdle()
+
+        assertEquals(SearchSort.STARS, sortRepo.sortOption.first())
+    }
+
+    @Test
+    fun `永続化された並び順が初期の並び順になる`() = runTest {
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(searchSuccess()),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(SearchSort.UPDATED),
+        )
+
+        assertEquals(SearchSort.UPDATED, viewModel.searchParams.value.sort)
+    }
+
+    @Test
+    fun `追加読み込み後に並び順を変えると1ページ目から取り直し次の追加読み込みは2ページ目を取る`() = runTest {
+        val repo = PagedFakeRepository(
+            mapOf(
+                1 to searchSuccess(listOf(sampleRepo("a")), hasMore = true),
+                2 to searchSuccess(listOf(sampleRepo("b")), hasMore = true),
+            ),
+        )
+        val viewModel = RepoSearchViewModel(
+            repo,
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("q") // 1ページ目
+        viewModel.loadMore() // 2ページ目まで進める（currentPage=2）
+        viewModel.selectSort(SearchSort.STARS) // 1ページ目から取り直す
+        viewModel.loadMore() // 取り直し後の追加読み込み
+
+        // 取り直しでページ位置が1に戻り、次の追加読み込みは3ページ目ではなく2ページ目を取る
+        assertEquals(listOf(1, 2, 1, 2), repo.requests.map { it.page })
+        assertEquals(SearchSort.STARS, repo.requests.last().sort)
+    }
+
+    @Test
+    fun `初期化前にユーザーが検索すると保存値で並び順が上書きされない`() = runTest {
+        val sortRepo = GatedFakeSearchSortRepository(SearchSort.UPDATED)
+        val viewModel = RepoSearchViewModel(
+            FakeRepoSearchRepository(searchSuccess(listOf(sampleRepo()))),
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            sortRepo,
+        )
+
+        viewModel.search("compose") // 保存値が読める前に既定の並び順で検索
+        sortRepo.emitSaved() // 遅れて保存値が届く
+        advanceUntilIdle()
+
+        assertEquals(SearchSort.BEST_MATCH, viewModel.searchParams.value.sort)
+    }
+
+    @Test
+    fun `0件の状態で並び順を変えると再検索される`() = runTest {
+        val repo = FakeRepoSearchRepository(searchSuccess())
+        val viewModel = RepoSearchViewModel(
+            repo,
+            FakeSearchHistoryRepository(),
+            FakeFavoriteRepository(),
+            FakeSearchSortRepository(),
+        )
+
+        viewModel.search("no-such-repository") // Empty
+        val countAfterSearch = repo.requests.size
+        viewModel.selectSort(SearchSort.STARS)
+
+        assertEquals(countAfterSearch + 1, repo.requests.size)
+        assertEquals(SearchSort.STARS, repo.requests.last().sort)
+        assertEquals(RepoSearchUiState.Empty, viewModel.uiState.value)
     }
 
     private fun sampleRepo(name: String = "nowinandroid") = RepoSummary(
@@ -482,8 +758,11 @@ class RepoSearchViewModelTest {
         language = "Kotlin",
     )
 
-    private fun searchSuccess(repos: List<RepoSummary> = emptyList(), hasMore: Boolean = false) =
-        DataResult.Success(RepoSearchPage(repos, hasMore))
+    private fun searchSuccess(
+        repos: List<RepoSummary> = emptyList(),
+        hasMore: Boolean = false,
+        totalCount: Int = 0,
+    ) = DataResult.Success(RepoSearchPage(repos, hasMore, totalCount))
 }
 
 /**
@@ -493,7 +772,7 @@ class RepoSearchViewModelTest {
 private class GatedFakeRepository : RepoSearchRepository {
     private val gates = mutableMapOf<Pair<String, Int>, CompletableDeferred<DataResult<RepoSearchPage>>>()
 
-    override suspend fun searchRepositories(query: String, page: Int): DataResult<RepoSearchPage> =
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> =
         gates.getOrPut(query to page) { CompletableDeferred() }.await()
 
     fun complete(query: String, page: Int, result: DataResult<RepoSearchPage>) {
@@ -511,7 +790,7 @@ private class SequencedFakeRepository(
     val requestedQueries = mutableListOf<String>()
     private var attempt = 0
 
-    override suspend fun searchRepositories(query: String, page: Int): DataResult<RepoSearchPage> {
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> {
         requestedQueries.add(query)
         return results[attempt++]
     }
@@ -523,8 +802,12 @@ private class SequencedFakeRepository(
 private class PagedFakeRepository(
     private val pages: Map<Int, DataResult<RepoSearchPage>>,
 ) : RepoSearchRepository {
-    override suspend fun searchRepositories(query: String, page: Int): DataResult<RepoSearchPage> =
-        pages.getValue(page)
+    val requests = mutableListOf<SearchRequest>()
+
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> {
+        requests.add(SearchRequest(query, sort, page))
+        return pages.getValue(page)
+    }
 }
 
 /**
@@ -538,8 +821,26 @@ private class RetryFakeRepository(
     val requestedPages = mutableListOf<Int>()
     private var attempt = 0
 
-    override suspend fun searchRepositories(query: String, page: Int): DataResult<RepoSearchPage> {
+    override suspend fun searchRepositories(query: String, sort: SearchSort, page: Int): DataResult<RepoSearchPage> {
         requestedPages.add(page)
         return if (page == 1) page1 else page2Attempts[attempt++]
+    }
+}
+
+/**
+ * 保存値の読み出しタイミングを手動で制御できるテスト用リポジトリ。
+ * [emitSaved] を呼ぶまで [sortOption] は保存値を流さない
+ */
+private class GatedFakeSearchSortRepository(private val saved: SearchSort) : SearchSortRepository {
+    private val gate = CompletableDeferred<Unit>()
+    override val sortOption: Flow<SearchSort> = flow {
+        gate.await()
+        emit(saved)
+    }
+
+    override suspend fun setSortOption(sort: SearchSort) {}
+
+    fun emitSaved() {
+        gate.complete(Unit)
     }
 }

@@ -10,6 +10,7 @@ sealed interface RepoSearchUiState {
     data class Success(
         val repos: List<RepoSummary>,
         val loadMoreState: LoadMoreState = LoadMoreState.Idle,
+        val totalCount: Int = 0,
     ) : RepoSearchUiState
 
     data class Error(val error: AppError) : RepoSearchUiState

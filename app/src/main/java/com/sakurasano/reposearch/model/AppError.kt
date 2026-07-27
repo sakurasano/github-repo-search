@@ -4,7 +4,7 @@ sealed interface AppError {
     /** 通信そのものの失敗（オフライン、タイムアウト等） */
     data object Network : AppError
 
-    /** レート制限超過（HTTP 403） */
+    /** レート制限超過 */
     data object RateLimited : AppError
 
     /** その他のサーバーエラー */

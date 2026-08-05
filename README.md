@@ -2,10 +2,6 @@
 
 [![CI](https://github.com/sakurasano/github-repo-search/actions/workflows/ci.yml/badge.svg)](https://github.com/sakurasano/github-repo-search/actions/workflows/ci.yml)
 
-現行のAndroid標準構成（Jetpack Compose / Coroutines / Hilt / MVVM）で実装した、GitHubリポジトリ検索アプリ。
-
-## デモ
-
 | 主要機能                                       | テーマ切り替え・ブラウザで開く                                     |
 |--------------------------------------------|-----------------------------------------------------|
 | <img src="docs/demo-main.gif" width="240"> | <img src="docs/demo-theme-browser.gif" width="240"> |

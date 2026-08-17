@@ -1,7 +1,7 @@
-package com.sakurasano.reposearch.di
+package com.sakurasano.reposearch.data
 
 import javax.inject.Qualifier
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
-annotation class SettingsDataStore
+annotation class SearchHistoryDataStore

@@ -13,15 +13,3 @@ data class RepoSummary(
     val starCount: Int,
     val language: String,
 )
-
-// 詳細画面からのお気に入り操作を RepoSummary 経路へ一本化するための変換
-fun RepoDetail.toSummary(): RepoSummary = RepoSummary(
-    id = id,
-    name = name,
-    fullName = fullName,
-    description = description,
-    ownerName = ownerName,
-    ownerAvatarUrl = ownerAvatarUrl,
-    starCount = starCount,
-    language = language,
-)

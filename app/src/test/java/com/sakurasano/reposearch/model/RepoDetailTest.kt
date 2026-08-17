@@ -3,7 +3,7 @@ package com.sakurasano.reposearch.model
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class RepoSummaryTest {
+class RepoDetailTest {
 
     @Test
     fun `RepoDetailからRepoSummaryへ変換できidが引き継がれる`() {

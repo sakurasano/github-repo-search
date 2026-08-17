@@ -22,6 +22,15 @@ GitHubリポジトリ検索Androidアプリ。Kotlin / Jetpack Compose / Hilt / 
 ./gradlew :app:testDebugUnitTest --tests "*<TestClass>.<テスト名>"
 ```
 
+## Android APIの調査
+
+Android APIを扱うときは必ず公式ドキュメント（Android Knowledge Base）を参照する。学習時点より後の変更や非推奨化があるため、記憶だけで答えない。
+
+```bash
+android docs search "<キーワード>"   # 公式ドキュメントを検索
+android docs fetch kb://<パス>      # 検索結果の記事本文を取得
+```
+
 ## アーキテクチャ
 
 GoogleのアプリアーキテクチャガイドをもとにUI / Dataの2層へ分離し、両層が参照するドメインモデルを切り出した構成。パッケージは `com.sakurasano.reposearch` 配下で、各層の責務は次の通り（具体的なクラス構成はディレクトリを参照）

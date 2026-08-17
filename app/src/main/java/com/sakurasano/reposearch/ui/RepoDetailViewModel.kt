@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakurasano.reposearch.data.FavoriteRepository
 import com.sakurasano.reposearch.data.RepoDetailRepository
-import com.sakurasano.reposearch.data.toSummary
 import com.sakurasano.reposearch.model.DataResult
+import com.sakurasano.reposearch.model.toSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job

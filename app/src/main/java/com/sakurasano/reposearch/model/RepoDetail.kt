@@ -18,3 +18,14 @@ data class RepoDetail(
     val topics: List<String>,
     val license: String,
 )
+
+fun RepoDetail.toSummary(): RepoSummary = RepoSummary(
+    id = id,
+    name = name,
+    fullName = fullName,
+    description = description,
+    ownerName = ownerName,
+    ownerAvatarUrl = ownerAvatarUrl,
+    starCount = starCount,
+    language = language,
+)

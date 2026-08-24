@@ -37,7 +37,14 @@ class ApiCallTest {
     }
 
     @Test
-    fun `HttpExceptionの403以外でServerになる`() = runTest {
+    fun `HttpExceptionの429でRateLimitedになる`() = runTest {
+        val result = apiCall { throw httpException(429) }
+
+        assertEquals(DataResult.Failure(AppError.RateLimited), result)
+    }
+
+    @Test
+    fun `HttpExceptionの403と429以外でServerになる`() = runTest {
         val result = apiCall { throw httpException(500) }
 
         assertEquals(DataResult.Failure(AppError.Server(500)), result)

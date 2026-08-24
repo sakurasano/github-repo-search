@@ -5,10 +5,10 @@ import com.sakurasano.reposearch.MainDispatcherRule
 import com.sakurasano.reposearch.data.FakeFavoriteRepository
 import com.sakurasano.reposearch.data.FakeRepoDetailRepository
 import com.sakurasano.reposearch.data.RepoDetailRepository
-import com.sakurasano.reposearch.data.toSummary
 import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
 import com.sakurasano.reposearch.model.RepoDetail
+import com.sakurasano.reposearch.model.toSummary
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch

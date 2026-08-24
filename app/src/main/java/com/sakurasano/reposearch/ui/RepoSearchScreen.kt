@@ -196,7 +196,7 @@ fun RepoSearchScreen(
 
                     is RepoSearchUiState.Error -> StatusMessage(
                         icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
-                        message = uiState.error.message(),
+                        message = stringResource(uiState.error.messageRes()),
                         onRetry = { repoSearchViewModel.retry() },
                         retryLabel = stringResource(R.string.search_retry),
                     )
@@ -400,7 +400,7 @@ private fun LoadMoreFooter(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = loadMoreState.error.message(),
+                    text = stringResource(loadMoreState.error.messageRes()),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -17,13 +17,7 @@ suspend fun <T> apiCall(block: suspend () -> T): DataResult<T> =
     } catch (_: IOException) {
         DataResult.Failure(AppError.Network)
     } catch (e: HttpException) {
-        val error = if (e.code() == 403 || e.code() == 429) {
-            AppError.RateLimited(
-                e.response()?.headers()?.let { retryAtEpochSeconds(it, System.currentTimeMillis() / 1000) },
-            )
-        } else {
-            AppError.Server(e.code())
-        }
+        val error = if (e.code() == 403 || e.code() == 429) AppError.RateLimited else AppError.Server(e.code())
         DataResult.Failure(error)
     } catch (e: Exception) {
         DataResult.Failure(AppError.Unknown(e))

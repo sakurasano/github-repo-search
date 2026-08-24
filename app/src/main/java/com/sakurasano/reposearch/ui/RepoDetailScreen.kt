@@ -115,7 +115,7 @@ fun RepoDetailScreen(
 
             is RepoDetailUiState.Error -> StatusMessage(
                 icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
-                message = stringResource(state.error.messageRes()),
+                message = state.error.message(),
                 modifier = Modifier.padding(innerPadding),
                 onRetry = viewModel::retry,
                 retryLabel = stringResource(R.string.detail_retry),

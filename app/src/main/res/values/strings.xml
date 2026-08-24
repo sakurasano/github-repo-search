@@ -5,6 +5,7 @@
     <string name="search_empty">該当するリポジトリが見つかりませんでした</string>
     <string name="error_network">通信に失敗しました。接続を確認してください</string>
     <string name="error_rate_limited">リクエストが多すぎます。しばらく待ってから再試行してください</string>
+    <string name="error_rate_limited_until">リクエストが多すぎます。%1$s以降に再試行できます</string>
     <string name="error_server">サーバーエラーが発生しました</string>
     <string name="error_unknown">予期しないエラーが発生しました</string>
     <string name="detail_title">リポジトリ</string>

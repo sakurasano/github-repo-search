@@ -18,7 +18,9 @@ suspend fun <T> apiCall(block: suspend () -> T): DataResult<T> =
         DataResult.Failure(AppError.Network)
     } catch (e: HttpException) {
         val error = if (e.code() == 403 || e.code() == 429) {
-            AppError.RateLimited
+            AppError.RateLimited(
+                e.response()?.headers()?.let { retryAtEpochSeconds(it, System.currentTimeMillis() / 1000) },
+            )
         } else {
             AppError.Server(e.code())
         }

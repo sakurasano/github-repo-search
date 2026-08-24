@@ -4,6 +4,10 @@ import com.sakurasano.reposearch.model.AppError
 import com.sakurasano.reposearch.model.DataResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import okhttp3.Headers
+import okhttp3.Headers.Companion.headersOf
+import okhttp3.Protocol
+import okhttp3.Request
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -33,14 +37,43 @@ class ApiCallTest {
     fun `HttpExceptionの403でRateLimitedになる`() = runTest {
         val result = apiCall { throw httpException(403) }
 
-        assertEquals(DataResult.Failure(AppError.RateLimited), result)
+        assertEquals(DataResult.Failure(AppError.RateLimited(null)), result)
     }
 
     @Test
     fun `HttpExceptionの429でRateLimitedになる`() = runTest {
         val result = apiCall { throw httpException(429) }
 
-        assertEquals(DataResult.Failure(AppError.RateLimited), result)
+        assertEquals(DataResult.Failure(AppError.RateLimited(null)), result)
+    }
+
+    @Test
+    fun `レート制限が枯渇しているとRateLimitedが再試行できる時刻を持つ`() = runTest {
+        val retryAt = System.currentTimeMillis() / 1000 + 900
+        val headers = headersOf(
+            "x-ratelimit-remaining",
+            "0",
+            "x-ratelimit-reset",
+            "$retryAt",
+        )
+
+        val result = apiCall { throw httpException(429, headers) }
+
+        assertEquals(DataResult.Failure(AppError.RateLimited(retryAt)), result)
+    }
+
+    @Test
+    fun `レート制限が枯渇していない403は時刻を持たない`() = runTest {
+        val headers = headersOf(
+            "x-ratelimit-remaining",
+            "58",
+            "x-ratelimit-reset",
+            "${System.currentTimeMillis() / 1000 + 900}",
+        )
+
+        val result = apiCall { throw httpException(403, headers) }
+
+        assertEquals(DataResult.Failure(AppError.RateLimited(null)), result)
     }
 
     @Test
@@ -73,6 +106,14 @@ class ApiCallTest {
         assertEquals(DataResult.Failure(AppError.Unknown(cause)), result)
     }
 
-    private fun httpException(code: Int): HttpException =
-        HttpException(Response.error<Any>(code, "".toResponseBody()))
+    private fun httpException(code: Int, headers: Headers = headersOf()): HttpException {
+        val raw = okhttp3.Response.Builder()
+            .request(Request.Builder().url("https://api.github.com/").build())
+            .protocol(Protocol.HTTP_1_1)
+            .code(code)
+            .message("error")
+            .headers(headers)
+            .build()
+        return HttpException(Response.error<Any>("".toResponseBody(), raw))
+    }
 }

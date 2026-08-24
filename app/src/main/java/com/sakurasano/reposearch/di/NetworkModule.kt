@@ -1,7 +1,6 @@
 package com.sakurasano.reposearch.di
 
 import com.sakurasano.reposearch.data.GitHubApi
-import com.sakurasano.reposearch.data.RateLimitInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,10 +24,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(rateLimitInterceptor: RateLimitInterceptor): OkHttpClient =
-        OkHttpClient.Builder()
-            .addInterceptor(rateLimitInterceptor)
-            .build()
+    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder().build()
 
     @Provides
     @Singleton

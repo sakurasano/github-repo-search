@@ -5,9 +5,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * バケットごとのレート制限残量を保持する。並行リクエストの応答が到着順に上書きすると
- * 古い応答の`remaining`で新しい応答の`remaining`を巻き戻してしまうため、
- * reset窓の新旧で更新可否を判定する（[record]参照）。
+ * バケットごとのレート制限残量を保持する。
+ * 並行リクエストの応答を到着順に上書きすると、古い応答が新しい応答の`remaining`を巻き戻してしまう。
+ * そのためリセット時刻の新しい応答を優先し、同じ時刻なら残量の少ないほうを新しいとみなす。
  */
 @Singleton
 class RateLimitTracker @Inject constructor() {
